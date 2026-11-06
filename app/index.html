@@ -85,13 +85,33 @@
     background: var(--nav); color: var(--nav-ink); padding: 10px 14px; border-radius: 12px; font-size: 13px; box-shadow: var(--shadow); }
 
   /* 지도 위 표시 */
-  .me { width: 44px; height: 44px; }
+  /* 내 위치: 달리는 사람 (움직일 때 팔다리 2동작 반복, 멈추면 선 자세) */
+  .me { position: relative; width: 52px; height: 74px; pointer-events: none; }
+  .me .ground { position: absolute; left: 50%; bottom: 0; width: 40px; height: 14px; margin-left: -20px;
+    border-radius: 50%; background: rgba(28,126,214,.25); }
+  .me .badge { position: absolute; left: 50%; bottom: 14px; width: 48px; height: 48px; margin-left: -24px;
+    border-radius: 50%; background: #1c7ed6; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,.35);
+    display: grid; place-items: center; }
+  .me .badge::after { content: ""; position: absolute; left: 50%; bottom: -9px; margin-left: -6px;
+    border: 6px solid transparent; border-top: 8px solid #fff; border-bottom: 0; }
+  .me svg { width: 34px; height: 34px; overflow: visible; }
+  .me svg g { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .me svg circle { fill: #fff; stroke: none; }
+  .me .pose-a, .me .pose-b { display: none; }
+  .me.moving .stand { display: none; }
+  .me.moving .pose-a { display: inline; animation: stepA .5s steps(1) infinite; }
+  .me.moving .pose-b { display: inline; animation: stepB .5s steps(1) infinite; }
+  @keyframes stepA { 0% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes stepB { 0% { opacity: 0; } 50% { opacity: 1; } }
   .poi { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 16px;
     background: #fff; border: 3px solid var(--c, #888); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
   .poi.toilet { width: 38px; height: 38px; font-size: 20px; }
   .poi.next { animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(32, 160, 90, .25); } }
-  @media (prefers-reduced-motion: reduce) { .poi.next { animation: none; } .next .arrow { transition: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .poi.next { animation: none; } .next .arrow { transition: none; }
+    .me.moving .pose-a { animation: none; } .me.moving .pose-b { display: none; }
+  }
   .maplibregl-ctrl-bottom-right { bottom: calc(env(safe-area-inset-bottom, 0px) + 250px); }
   @media (max-width: 420px) { .next .big { font-size: 26px; } .btns { grid-template-columns: 1fr 1fr; } }
 </style>
@@ -270,9 +290,20 @@
 
       const meEl = document.createElement("div");
       meEl.className = "me";
-      meEl.innerHTML = `<svg viewBox="0 0 44 44" width="44" height="44"><circle cx="22" cy="22" r="20" fill="rgba(28,126,214,.18)"/>
-        <path d="M22 6 L34 34 L22 28 L10 34 Z" fill="#1c7ed6" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
-      state.me = new maplibregl.Marker({ element: meEl, rotationAlignment: "map", pitchAlignment: "map" });
+      meEl.innerHTML = `
+        <div class="ground"></div>
+        <div class="badge"><svg viewBox="0 0 24 24" aria-label="나">
+          <circle cx="14.2" cy="4.2" r="2.3"/>
+          <g class="stand"><path d="M13.6 7.2 L12.6 14"/><path d="M13.3 8.8 L10.4 12.4"/><path d="M13.3 8.8 L16.2 12.2"/>
+            <path d="M12.6 14 L11 20.5"/><path d="M12.6 14 L14.6 20.5"/></g>
+          <g class="pose-a"><path d="M13.6 7.2 L11.6 13.6"/><path d="M13 8.8 L16.4 10.4 L18.2 8.4"/><path d="M13 8.8 L9.8 9.6 L8.2 12.4"/>
+            <path d="M11.6 13.6 L15 16 L13.8 20.6"/><path d="M11.6 13.6 L8.6 16.8 L5.2 17.4"/></g>
+          <g class="pose-b"><path d="M13.8 7.2 L11.8 13.6"/><path d="M13.2 8.8 L14.8 11.6 L17.2 10.8"/><path d="M13.2 8.8 L10.6 10.8 L9.6 8.6"/>
+            <path d="M11.8 13.6 L12.8 17.2 L11.6 20.8"/><path d="M11.8 13.6 L9.6 16.6 L7.2 15.2"/></g>
+        </svg></div>`;
+      state.meEl = meEl;
+      // 사람은 항상 똑바로 서 있게(viewport). 지도가 진행 방향으로 돌아가므로 앞쪽 = 화면 위쪽
+      state.me = new maplibregl.Marker({ element: meEl, anchor: "bottom", rotationAlignment: "viewport", pitchAlignment: "viewport" });
     });
 
     // ---------- 버튼 ----------
@@ -297,7 +328,7 @@
   // ---------- 내비 공통 ----------
   function beginNav(kind) {
     state.nav = kind; state.dist = 0; state.climb = 0; state.lastAlt = null; state.startTime = performance.now();
-    state.lastPos = null;
+    state.lastPos = null; state.lastUpdAt = null; state.lastMoveAt = 0;
     $("introCard").hidden = true; $("navCard").hidden = false; $("roadRow").hidden = false; $("stats").hidden = false;
     $("btnDemo").textContent = kind === "demo" ? "■ 멈추기" : "▶ 데모 주행";
     $("btnDemo").className = kind === "demo" ? "stop" : "primary";
@@ -326,14 +357,16 @@
 
   function update(pos, heading, now) {
     const map = state.map;
-    if (state.lastPos) {
-      const d = haversine(state.lastPos, pos);
-      if (d < 50) state.dist += d;
-    }
+    const moved = state.lastPos ? haversine(state.lastPos, pos) : 0;
+    if (moved < 50) state.dist += moved;
     state.lastPos = pos; state.pos = pos;
     // 카메라 방향은 부드럽게 따라가기
     state.camBearing = (state.camBearing + angDiff(state.camBearing, heading) * 0.12 + 360) % 360;
-    state.me.setLngLat(pos).setRotation(heading);
+    state.me.setLngLat(pos);
+    const dt = Math.max((now - (state.lastUpdAt || now)) / 1000, 0.001);
+    state.lastUpdAt = now;
+    if (moved / dt > 0.8) state.lastMoveAt = now;              // 초속 0.8m 넘게 움직일 때만 '달리는 중' (GPS 흔들림 무시)
+    state.meEl.classList.toggle("moving", now - (state.lastMoveAt || 0) < 2500);   // 2.5초 넘게 멈추면 선 자세
     if (!state.meShown) { state.me.addTo(map); state.meShown = true; }   // 위치를 넣은 뒤에 지도에 올림
     map.jumpTo({ center: pos, bearing: state.camBearing, pitch: state.is3d ? 62 : 0, zoom: 17.2 });
 
