@@ -54,6 +54,13 @@
   .intro { background: var(--panel); padding: 14px 16px; }
   .intro h1 { margin: 0 0 4px; font-size: 18px; letter-spacing: -.3px; text-wrap: balance; }
   .intro p { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+  .pick { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+  .pick select { flex: 1; min-width: 0; font: inherit; font-size: 15px; color: var(--ink); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .loading { position: fixed; z-index: 6; top: calc(env(safe-area-inset-top, 0px) + 10px); right: 12px;
+    background: var(--nav); color: var(--nav-ink); font-size: 12px; padding: 6px 10px; border-radius: 999px; box-shadow: var(--shadow); }
+  .next-mark { width: 44px; height: 44px; border-radius: 50%; pointer-events: none;
+    border: 4px solid #20a05a; box-shadow: 0 0 0 6px rgba(32,160,90,.25); animation: pulse 1.4s ease-in-out infinite; }
 
   /* 아래쪽 정보·버튼 */
   .bottom {
@@ -109,7 +116,7 @@
   .poi.next { animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(32, 160, 90, .25); } }
   @media (prefers-reduced-motion: reduce) {
-    .poi.next { animation: none; } .next .arrow { transition: none; }
+    .next-mark { animation: none; } .next .arrow { transition: none; }
     .me.moving .pose-a { animation: none; } .me.moving .pose-b { display: none; }
   }
   .maplibregl-ctrl-bottom-right { bottom: calc(env(safe-area-inset-bottom, 0px) + 250px); }
@@ -122,8 +129,11 @@
 <div class="banner">
   <div class="card" id="introCard">
     <div class="intro">
-      <h1 id="title">러닝 내비</h1>
-      <p id="sub">러닝 전용로·경사도·화장실을 내비게이션처럼 보여줘요. 아래 <b>데모 주행</b>으로 미리 달려보세요.</p>
+      <h1 id="title">전국 러닝 내비</h1>
+      <p id="sub">지도에서 시군구를 누르거나 아래에서 고르세요. <b>📍 내 위치</b>를 누르면 지금 있는 곳의 러닝 길로 바로 안내해요. 색이 진한 지역일수록 러닝 전용로 비율이 높아요.</p>
+      <label class="pick"><span>지역</span>
+        <select id="regionSel" aria-label="시군구 선택"><option value="">시군구 고르기…</option></select>
+      </label>
     </div>
   </div>
   <div class="card" id="navCard" hidden>
@@ -161,12 +171,12 @@
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="loading" id="loading" hidden>러닝 길 불러오는 중…</div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
 (() => {
-  const REGION = new URLSearchParams(location.search).get("r") || "ulsan_junggu_namgu";
-  const BASE = `data/${REGION}/`;
+  const DATA = "data/";
   const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
   const DEM_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
   const SLOPE = { 0: ["평지 <3%", "#1a9850"], 1: ["완만 3~6%", "#91cf60"], 2: ["경사 6~10%", "#fdae61"],
@@ -176,10 +186,14 @@
                 store: ["🏪", "#f08c00", "편의점"], police: ["👮", "#7048e8", "경찰"] };
   const RUN_PACE_SEC = 360;            // 남은 시간 계산용 기본 페이스 6:00/km
   const DEMO_SPEED = 3.0 * 4;          // 데모: 3 m/s(5:33/km)를 4배속으로
+  const MAX_LOADED = 14;               // 동시에 들고 있는 시군구 수 (넘으면 오래된 것부터 내려놓음)
+  const DETAIL_ZOOM = 11;              // 이 배율부터 화면 안 시군구의 러닝 길을 자동으로 불러옴
+  const KOREA = { center: [127.8, 36.2], zoom: 6.2 };
 
   const $ = (id) => document.getElementById(id);
   const state = { mode: "slope", is3d: true, nav: null, pos: null, heading: 0, camBearing: 0,
-                  dist: 0, climb: 0, lastAlt: null, startTime: 0, toilets: [], markers: [] };
+                  dist: 0, climb: 0, lastAlt: null, startTime: 0, toilets: [],
+                  regions: null, byCode: {}, loaded: new Map(), loading: new Map(), cur: null };
 
   // ---------- 계산 도우미 ----------
   const R = 6371000, rad = (d) => d * Math.PI / 180, deg = (r) => r * 180 / Math.PI;
@@ -200,6 +214,41 @@
     const t = $("toast"); t.textContent = msg; t.hidden = false;
     clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), ms);
   }
+  // 압축 좌표(polyline) → [[경도, 위도], ...]
+  function decode(str) {
+    const out = []; let i = 0, lat = 0, lon = 0;
+    while (i < str.length) {
+      for (const k of [0, 1]) {
+        let shift = 0, res = 0, b;
+        do { b = str.charCodeAt(i++) - 63; res |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+        const d = res & 1 ? ~(res >> 1) : res >> 1;
+        if (k === 0) lat += d; else lon += d;
+      }
+      out.push([lon / 1e5, lat / 1e5]);
+    }
+    return out;
+  }
+  // 점이 시군구 경계 안에 있는지
+  function inRing(pt, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  function inGeom(pt, g) {
+    const polys = g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : [];
+    return polys.some((p) => inRing(pt, p[0]) && !p.slice(1).some((h) => inRing(pt, h)));
+  }
+  function regionAt(pt) {
+    for (const f of state.regions.features) {
+      const b = f.properties.bbox;
+      if (pt[0] < b[0] || pt[0] > b[2] || pt[1] < b[1] || pt[1] > b[3]) continue;
+      if (inGeom(pt, f.geometry)) return f.properties.code;
+    }
+    return null;
+  }
 
   // ---------- 지도 스타일 ----------
   const colorExpr = () => state.mode === "slope"
@@ -207,6 +256,7 @@
     : ["match", ["get", "r"], "A", RUN.A[1], RUN.B[1]];
   // 러닝 전용로(A)는 큰길처럼 두껍게, 러닝 가능 길(B)은 골목처럼 가늘게
   const widthExpr = (extra) => ["interpolate", ["exponential", 1.6], ["zoom"],
+    10, ["match", ["get", "r"], "A", 1 + extra * .3, .5 + extra * .2],
     12, ["match", ["get", "r"], "A", 2 + extra * .4, 1 + extra * .3],
     15, ["match", ["get", "r"], "A", 5 + extra, 2.5 + extra * .7],
     17, ["match", ["get", "r"], "A", 12 + extra * 1.5, 6 + extra],
@@ -231,22 +281,129 @@
     }
   }
 
+  // 시설 아이콘 (이모지를 원 안에 그려 지도 그림으로 등록 → 수천 개도 가볍게)
+  function addPoiIcons(map) {
+    for (const [t, [emoji, color]] of Object.entries(POI)) {
+      const size = t === "toilet" ? 38 : 30, pr = 2, c = document.createElement("canvas");
+      c.width = c.height = size * pr;
+      const g = c.getContext("2d"); g.scale(pr, pr);
+      g.beginPath(); g.arc(size / 2, size / 2, size / 2 - 2.5, 0, Math.PI * 2);
+      g.fillStyle = "#fff"; g.fill(); g.lineWidth = 3; g.strokeStyle = color; g.stroke();
+      g.font = `${Math.round(size * .52)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(emoji, size / 2, size / 2 + 1);
+      map.addImage(`poi-${t}`, g.getImageData(0, 0, c.width, c.height), { pixelRatio: pr });
+    }
+  }
+
+  // ---------- 시군구 데이터 불러오기·내려놓기 ----------
+  function showLoading() { $("loading").hidden = state.loading.size === 0; }
+  function loadRegion(code) {
+    if (state.loaded.has(code)) { state.loaded.get(code).used = performance.now(); return Promise.resolve(state.loaded.get(code)); }
+    if (state.loading.has(code)) return state.loading.get(code);
+    const p = fetch(`${DATA}r/${code}.json`).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((d) => {
+        const lines = d.lines.map(([r, s, g, ni, enc]) => ({ type: "Feature",
+          properties: { r, s, g: g < 0 ? null : g / 10, n: ni >= 0 ? d.names[ni] : "", c: code },
+          geometry: { type: "LineString", coordinates: decode(enc) } }));
+        const pois = d.pois.map(([t, n, x, y]) => ({ type: "Feature", properties: { t, n }, geometry: { type: "Point", coordinates: [x, y] } }));
+        const reg = { code, label: d.label, lines, pois, route: d.demo ? decode(d.demo) : null, demo_m: d.demo_m,
+                      hasSlope: d.lines.some((l) => l[1] !== 9), used: performance.now() };
+        state.loaded.set(code, reg);
+        evict();
+        refreshSources();
+        return reg;
+      })
+      .finally(() => { state.loading.delete(code); showLoading(); });
+    state.loading.set(code, p); showLoading();
+    return p;
+  }
+  function evict() {
+    if (state.loaded.size <= MAX_LOADED) return;
+    const keep = new Set(state.cur ? [state.cur, ...(state.byCode[state.cur]?.nb || [])] : []);
+    const old = [...state.loaded.values()].filter((r) => !keep.has(r.code)).sort((a, b) => a.used - b.used);
+    while (state.loaded.size > MAX_LOADED && old.length) state.loaded.delete(old.shift().code);
+  }
+  let refreshT = null;
+  function refreshSources() {          // 여러 지역이 한꺼번에 와도 지도 갱신은 한 번만
+    clearTimeout(refreshT);
+    refreshT = setTimeout(() => {
+      const map = state.map; if (!map || !map.getSource("run")) return;
+      const regs = [...state.loaded.values()];
+      map.getSource("run").setData({ type: "FeatureCollection", features: regs.flatMap((r) => r.lines) });
+      map.getSource("poi").setData({ type: "FeatureCollection", features: regs.flatMap((r) => r.pois) });
+      state.toilets = regs.flatMap((r) => r.pois.filter((p) => p.properties.t === "toilet")
+        .map((p) => ({ ll: p.geometry.coordinates, name: p.properties.n })));
+      map.setFilter("regions-line-cur", ["==", ["get", "code"], state.cur || ""]);
+      // 주행 중이면 새 길이 그려진 뒤 안내 정보(화장실·지금 길)를 바로 다시 계산
+      if (state.nav && state.pos) map.once("idle", () => {
+        if (state.nav && state.pos) { state.lastUi = 0; update(state.pos, state.heading, performance.now()); }
+      });
+    }, 60);
+  }
+  // 지금 지역 + 이웃 지역을 불러옴 (달리다 경계를 넘어도 길이 끊기지 않게)
+  function ensureAround(code) {
+    const nb = state.byCode[code]?.nb || [];
+    return Promise.all([code, ...nb].map((c) => loadRegion(c).catch(() => null)));
+  }
+  function setCurrent(code, quiet) {
+    if (!code || code === state.cur) return;
+    const prev = state.cur; state.cur = code;
+    const label = state.byCode[code].label;
+    $("title").textContent = `${label} 러닝 내비`;
+    document.title = `${label} · 러닝 내비`;
+    $("regionSel").value = code;
+    try { localStorage.setItem("runnavi-region", code); } catch (e) {}
+    try { history.replaceState(null, "", `?r=${code}`); } catch (e) {}
+    if (!quiet && prev && state.nav) toast(`${label}에 들어왔어요`);
+    ensureAround(code);
+    refreshSources();
+  }
+  async function selectRegion(code, fly = true) {
+    if (!state.byCode[code]) return;
+    setCurrent(code, true);
+    const p = state.byCode[code];
+    if (fly) state.map.flyTo({ center: p.center, zoom: 14.3, pitch: state.is3d ? 60 : 0, bearing: -20, duration: 1800 });
+    const reg = await loadRegion(code).catch(() => null);
+    if (!reg) return toast("이 지역 러닝 길 데이터를 불러오지 못했어요");
+    $("sub").innerHTML = `러닝 길 ${p.run_km != null ? p.run_km.toLocaleString() + "km" : "–"}` +
+      (p.a_pct != null ? ` · 전용로 ${p.a_pct.toFixed(1)}%` : "") + (p.flat_pct != null ? ` · 평지 ${p.flat_pct.toFixed(0)}%` : "") +
+      `<br><b>▶ 데모 주행</b>으로 미리 달려보거나 <b>📍 내 위치</b>로 시작하세요.`;
+    if (fly && reg.route) state.map.flyTo({ center: reg.route[0], zoom: 15.2, pitch: state.is3d ? 60 : 0, bearing: -20, duration: 1200 });
+  }
+  // 지도를 크게 보고 있을 때: 화면 안 시군구 길을 자동으로 (최대 6곳, 화면 가운데에서 가까운 순)
+  function loadVisible() {
+    const map = state.map;
+    if (state.nav || map.getZoom() < DETAIL_ZOOM) return;
+    const c = map.getCenter().toArray(), b = map.getBounds();
+    const here = regionAt(c);
+    if (here) setCurrent(here, true);
+    const vis = state.regions.features.map((f) => f.properties)
+      .filter((p) => !(p.bbox[2] < b.getWest() || p.bbox[0] > b.getEast() || p.bbox[3] < b.getSouth() || p.bbox[1] > b.getNorth()))
+      .sort((p, q) => haversine(c, p.center) - haversine(c, q.center)).slice(0, 6);
+    vis.forEach((p) => loadRegion(p.code).catch(() => null));
+  }
+
   // ---------- 시작 ----------
   Promise.all([
-    fetch(BASE + "meta.json").then((r) => r.json()),
-    fetch(BASE + "lines.geojson").then((r) => r.json()),
-    fetch(BASE + "pois.geojson").then((r) => r.json()),
-    fetch(BASE + "demo_route.json").then((r) => r.json()),
+    fetch(DATA + "regions.geojson").then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }),
     fetchStyle(),
-  ]).then(([meta, lines, pois, route, style]) => {
-    $("title").textContent = `${meta.label} 러닝 내비`;
-    document.title = `${meta.label} 러닝 내비`;
-    state.meta = meta; state.route = route;
-    if (!meta.has_slope) state.mode = "run";
+  ]).then(([regions, style]) => {
+    state.regions = regions;
+    for (const f of regions.features) state.byCode[f.properties.code] = f.properties;
     renderLegend();
 
+    // 지역 고르기 목록 (시도별로 묶기)
+    const groups = {};
+    for (const p of Object.values(state.byCode)) {
+      const [sido, ...rest] = p.label.split(" ");
+      (groups[sido] = groups[sido] || []).push([p.code, rest.join(" ")]);
+    }
+    $("regionSel").insertAdjacentHTML("beforeend", Object.entries(groups).map(([sido, list]) =>
+      `<optgroup label="${sido}">${list.map(([c, n]) => `<option value="${c}">${n}</option>`).join("")}</optgroup>`).join(""));
+    $("regionSel").onchange = (e) => e.target.value && selectRegion(e.target.value);
+
     const map = new maplibregl.Map({
-      container: "map", style, center: meta.center, zoom: 15.2, pitch: 60, bearing: -25,
+      container: "map", style, center: KOREA.center, zoom: KOREA.zoom, pitch: 0,
       maxPitch: 75, attributionControl: { compact: true },
     });
     state.map = map;
@@ -258,35 +415,71 @@
         map.addSource("dem", { type: "raster-dem", tiles: [DEM_TILES], encoding: "terrarium", tileSize: 256, maxzoom: 14 });
         map.setTerrain({ source: "dem", exaggeration: 1.4 });
       } catch (e) { /* 지형이 없어도 지도는 동작 */ }
+      addPoiIcons(map);
 
-      map.addSource("run", { type: "geojson", data: lines });
-      map.addSource("demo", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: route } } });
+      // 전국 시군구: 멀리서 볼 땐 '러닝 전용로 비율'로 색칠, 가까이 가면 경계선만
+      map.addSource("regions", { type: "geojson", data: regions, promoteId: "code" });
+      map.addLayer({ id: "regions-fill", type: "fill", source: "regions",
+        paint: { "fill-color": ["interpolate", ["linear"], ["coalesce", ["get", "a_pct"], 0], 0, "#fff3e6", 15, "#ffb87a", 35, "#e8590c", 60, "#8f2d00"],
+                 "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, ["case", ["boolean", ["feature-state", "hover"], false], .85, .6], 10.5, .25, 11.5, 0] } }, firstSymbol);
+      map.addLayer({ id: "regions-line", type: "line", source: "regions",
+        paint: { "line-color": "#5b6b78", "line-width": ["interpolate", ["linear"], ["zoom"], 6, .4, 12, 1.2], "line-opacity": .7 } }, firstSymbol);
+      map.addLayer({ id: "regions-line-cur", type: "line", source: "regions", filter: ["==", ["get", "code"], ""],
+        paint: { "line-color": "#e8590c", "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.5, 12, 3], "line-dasharray": [2, 1.5] } }, firstSymbol);
+
+      map.addSource("run", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addSource("poi", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addSource("demo", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "demo-glow", type: "line", source: "demo", layout: { "line-cap": "round", "line-join": "round", visibility: "none" },
         paint: { "line-color": "#ffd43b", "line-width": ["interpolate", ["linear"], ["zoom"], 12, 8, 17, 30, 19, 60], "line-blur": 6, "line-opacity": .75 } }, firstSymbol);
-      map.addLayer({ id: "run-casing", type: "line", source: "run", layout: { "line-cap": "round", "line-join": "round" },
+      map.addLayer({ id: "run-casing", type: "line", source: "run", minzoom: 10, layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#1d2a33", "line-width": widthExpr(3), "line-opacity": .85 } }, firstSymbol);
-      map.addLayer({ id: "run-inner", type: "line", source: "run", layout: { "line-cap": "round", "line-join": "round" },
+      map.addLayer({ id: "run-inner", type: "line", source: "run", minzoom: 10, layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": colorExpr(), "line-width": widthExpr(0) } }, firstSymbol);
       // 길 가운데 흰 점선 (도로 중앙선 느낌, 전용로만)
       map.addLayer({ id: "run-center", type: "line", source: "run", minzoom: 16, filter: ["==", ["get", "r"], "A"],
         layout: { "line-cap": "butt", "line-join": "round" },
         paint: { "line-color": "rgba(255,255,255,.85)", "line-width": ["interpolate", ["linear"], ["zoom"], 16, 1, 19, 3], "line-dasharray": [3, 3] } }, firstSymbol);
+      // 시설: 화장실은 늘, 나머지는 가까이 볼 때만
+      map.addLayer({ id: "poi-other", type: "symbol", source: "poi", minzoom: 14, filter: ["!=", ["get", "t"], "toilet"],
+        layout: { "icon-image": ["concat", "poi-", ["get", "t"]], "icon-allow-overlap": true, "icon-size": ["interpolate", ["linear"], ["zoom"], 14, .7, 17, 1] } });
+      map.addLayer({ id: "poi-toilet", type: "symbol", source: "poi", minzoom: 11, filter: ["==", ["get", "t"], "toilet"],
+        layout: { "icon-image": "poi-toilet", "icon-allow-overlap": true, "icon-size": ["interpolate", ["linear"], ["zoom"], 11, .55, 16, 1] } });
 
+      // 지역 누르기 / 마우스 올리기
+      let hover = null;
+      map.on("mousemove", "regions-fill", (e) => {
+        if (map.getZoom() >= DETAIL_ZOOM) return;
+        const id = e.features[0]?.properties.code;
+        if (hover && hover !== id) map.setFeatureState({ source: "regions", id: hover }, { hover: false });
+        hover = id; map.setFeatureState({ source: "regions", id }, { hover: true });
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "regions-fill", () => {
+        if (hover) map.setFeatureState({ source: "regions", id: hover }, { hover: false });
+        hover = null; map.getCanvas().style.cursor = "";
+      });
+      map.on("click", (e) => {
+        if (state.nav) return;
+        const runHit = map.queryRenderedFeatures(e.point, { layers: ["run-inner", "poi-toilet", "poi-other"] });
+        if (runHit.length) return;                                    // 길·시설 누름은 아래에서 처리
+        if (map.getZoom() < DETAIL_ZOOM) {
+          const f = map.queryRenderedFeatures(e.point, { layers: ["regions-fill"] })[0];
+          if (f) selectRegion(f.properties.code);
+        }
+      });
       map.on("click", "run-inner", (e) => {
         const p = e.features[0].properties;
         const g = p.g === null || p.g === undefined || p.g === "null" ? "" : ` · 경사 ${Math.abs(+p.g).toFixed(1)}%`;
         new maplibregl.Popup({ closeButton: false }).setLngLat(e.lngLat)
           .setHTML(`<b>${RUN[p.r][0]}</b>${p.n ? " · " + p.n : ""}<br>${SLOPE[p.s][0]}${g}`).addTo(map);
       });
-
-      for (const f of pois.features) {
-        const [emoji, c] = POI[f.properties.t] || ["•", "#888"];
-        const el = document.createElement("div");
-        el.className = `poi ${f.properties.t}`; el.style.setProperty("--c", c); el.textContent = emoji;
-        el.title = `${POI[f.properties.t]?.[2] || ""} ${f.properties.n || ""}`;
-        const m = new maplibregl.Marker({ element: el }).setLngLat(f.geometry.coordinates).addTo(map);
-        if (f.properties.t === "toilet") state.toilets.push({ ll: f.geometry.coordinates, name: f.properties.n, el });
-      }
+      map.on("click", ["poi-toilet", "poi-other"], (e) => {
+        const p = e.features[0].properties;
+        new maplibregl.Popup({ closeButton: false, offset: 16 }).setLngLat(e.features[0].geometry.coordinates)
+          .setHTML(`${POI[p.t][0]} <b>${POI[p.t][2]}</b>${p.n ? "<br>" + p.n : ""}`).addTo(map);
+      });
+      map.on("moveend", loadVisible);
 
       const meEl = document.createElement("div");
       meEl.className = "me";
@@ -304,31 +497,41 @@
       state.meEl = meEl;
       // 사람은 항상 똑바로 서 있게(viewport). 지도가 진행 방향으로 돌아가므로 앞쪽 = 화면 위쪽
       state.me = new maplibregl.Marker({ element: meEl, anchor: "bottom", rotationAlignment: "viewport", pitchAlignment: "viewport" });
+      const nm = document.createElement("div"); nm.className = "next-mark";
+      state.nextMark = new maplibregl.Marker({ element: nm });
+
+      // 처음 열 때: 주소의 ?r=코드 → 지난번 지역 → 전국 화면
+      const q = new URLSearchParams(location.search).get("r");
+      let last = null; try { last = localStorage.getItem("runnavi-region"); } catch (e) {}
+      const start = state.byCode[q] ? q : null;
+      if (start) selectRegion(start);
+      else if (state.byCode[last]) { $("regionSel").value = last; }
     });
 
     // ---------- 버튼 ----------
     $("btnMode").onclick = () => {
-      if (!state.meta.has_slope) return toast("이 지역은 경사도 데이터가 없어요");
       state.mode = state.mode === "slope" ? "run" : "slope";
       map.setPaintProperty("run-inner", "line-color", colorExpr());
       renderLegend();
+      if (state.mode === "slope" && state.cur && state.loaded.get(state.cur) && !state.loaded.get(state.cur).hasSlope)
+        toast("이 지역은 경사도 데이터가 없어 회색으로 보여요");
     };
     $("btn3d").onclick = () => {
       state.is3d = !state.is3d;
       $("btn3d").textContent = state.is3d ? "2D 보기" : "3D 보기";
-      if (!state.nav) map.easeTo({ pitch: state.is3d ? 60 : 0, duration: 600 });
+      if (!state.nav && map.getZoom() >= DETAIL_ZOOM) map.easeTo({ pitch: state.is3d ? 60 : 0, duration: 600 });
     };
     $("btnDemo").onclick = () => (state.nav === "demo" ? stopNav() : startDemo());
     $("btnGps").onclick = () => (state.nav === "gps" ? stopNav() : startGps());
   }).catch((e) => {
     console.error(e);
-    toast("데이터를 불러오지 못했어요. 주소의 지역 이름(r=…)을 확인해 주세요.", 10000);
+    toast("전국 지역 목록(data/regions.geojson)을 불러오지 못했어요.", 10000);
   });
 
   // ---------- 내비 공통 ----------
   function beginNav(kind) {
     state.nav = kind; state.dist = 0; state.climb = 0; state.lastAlt = null; state.startTime = performance.now();
-    state.lastPos = null; state.lastUpdAt = null; state.lastMoveAt = 0;
+    state.lastPos = null; state.lastUpdAt = null; state.lastMoveAt = 0; state.lastRegionCheck = 0;
     $("introCard").hidden = true; $("navCard").hidden = false; $("roadRow").hidden = false; $("stats").hidden = false;
     $("btnDemo").textContent = kind === "demo" ? "■ 멈추기" : "▶ 데모 주행";
     $("btnDemo").className = kind === "demo" ? "stop" : "primary";
@@ -351,7 +554,7 @@
     $("roadRow").hidden = true; $("stats").hidden = true;
     $("btnDemo").textContent = "▶ 데모 주행"; $("btnDemo").className = "primary";
     $("btnGps").textContent = "📍 내 위치"; $("btnGps").className = "";
-    state.toilets.forEach((t) => t.el.classList.remove("next"));
+    state.nextMark.remove(); state.nextShown = false;
     state.me.remove(); state.meShown = false;
   }
 
@@ -359,7 +562,7 @@
     const map = state.map;
     const moved = state.lastPos ? haversine(state.lastPos, pos) : 0;
     if (moved < 50) state.dist += moved;
-    state.lastPos = pos; state.pos = pos;
+    state.lastPos = pos; state.pos = pos; state.heading = heading;
     // 카메라 방향은 부드럽게 따라가기
     state.camBearing = (state.camBearing + angDiff(state.camBearing, heading) * 0.12 + 360) % 360;
     state.me.setLngLat(pos);
@@ -369,6 +572,13 @@
     state.meEl.classList.toggle("moving", now - (state.lastMoveAt || 0) < 2500);   // 2.5초 넘게 멈추면 선 자세
     if (!state.meShown) { state.me.addTo(map); state.meShown = true; }   // 위치를 넣은 뒤에 지도에 올림
     map.jumpTo({ center: pos, bearing: state.camBearing, pitch: state.is3d ? 62 : 0, zoom: 17.2 });
+
+    // 2초마다: 어느 시군구에 있는지 확인 → 바뀌면 그 지역 + 이웃 지역 불러오기
+    if (now - (state.lastRegionCheck || 0) > 2000) {
+      state.lastRegionCheck = now;
+      const code = regionAt(pos);
+      if (code && code !== state.cur) setCurrent(code);
+    }
 
     if (now - (state.lastUi || 0) < 200) return;     // 화면 글씨는 1초에 5번만 갱신
     state.lastUi = now;
@@ -383,19 +593,23 @@
     // 진행 방향 다음 화장실 (앞쪽 ±70° 안에서 가장 가까운 곳, 없으면 가장 가까운 곳)
     let best = null, fallback = null;
     for (const t of state.toilets) {
+      if (Math.abs(t.ll[1] - pos[1]) > .05 || Math.abs(t.ll[0] - pos[0]) > .06) continue;   // 약 5km 밖은 건너뜀
       const d = haversine(pos, t.ll), b = bearing(pos, t.ll), rel = angDiff(heading, b);
       if (!fallback || d < fallback.d) fallback = { ...t, d, rel };
       if (Math.abs(rel) <= 70 && d <= 5000 && (!best || d < best.d)) best = { ...t, d, rel };
     }
     const target = best || fallback;
-    state.toilets.forEach((t) => t.el.classList.toggle("next", target && t.el === target.el));
     if (target) {
+      state.nextMark.setLngLat(target.ll);
+      if (!state.nextShown) { state.nextMark.addTo(map); state.nextShown = true; }
       $("nextDist").textContent = fmtDist(target.d);
       $("nextName").textContent = `${best ? "앞쪽" : "뒤쪽"} 화장실 · ${target.name || "공중화장실"}`;
       $("nextEta").innerHTML = `약 ${Math.max(1, Math.round(target.d / 1000 * RUN_PACE_SEC / 60))}분<br>직선거리`;
       $("arrow").style.transform = `rotate(${target.rel}deg)`;
     } else {
-      $("nextDist").textContent = "–"; $("nextName").textContent = "근처 화장실 정보 없음"; $("nextEta").textContent = "";
+      if (state.nextShown) { state.nextMark.remove(); state.nextShown = false; }
+      $("nextDist").textContent = "–"; $("nextName").textContent = "5km 안에 화장실 정보 없음"; $("nextEta").textContent = "";
+      $("arrow").style.transform = "";
     }
 
     // 지금 달리는 길 (내 위치 주변 선 정보)
@@ -408,7 +622,9 @@
       const g = f.g === null || f.g === undefined || f.g === "null" ? "" : ` (${Math.abs(+f.g).toFixed(1)}%)`;
       $("roadTxt").textContent = `${SLOPE[f.s][0].split(" ")[0]}${g}${f.n ? " · " + f.n : ""}`;
     } else {
-      $("roadChip").textContent = "길 밖"; $("roadChip").style.background = "#868e96"; $("roadTxt").textContent = "러닝 길 정보가 없는 곳이에요";
+      const busy = state.loading.size > 0;
+      $("roadChip").textContent = busy ? "불러오는 중" : "길 밖"; $("roadChip").style.background = "#868e96";
+      $("roadTxt").textContent = busy ? "이 지역 러닝 길을 받는 중이에요" : "러닝 길 정보가 없는 곳이에요";
     }
 
     const elapsed = (now - state.startTime) / 1000 * (state.nav === "demo" ? 4 : 1);
@@ -417,10 +633,13 @@
     $("sClimb").textContent = Math.round(state.climb);
   }
 
-  // ---------- 데모 주행 ----------
-  function startDemo() {
+  // ---------- 데모 주행 (고른 시군구의 추천 경로) ----------
+  async function startDemo() {
+    if (!state.cur) return toast("먼저 지도에서 시군구를 누르거나 목록에서 고르세요");
+    const reg = await loadRegion(state.cur).catch(() => null);
+    if (!reg || !reg.route) return toast("이 지역은 데모 경로가 없어요");
     if (state.nav) stopNav();
-    const route = state.route, cum = [0];
+    const route = reg.route, cum = [0];
     for (let i = 1; i < route.length; i++) cum.push(cum[i - 1] + haversine(route[i - 1], route[i]));
     const total = cum[cum.length - 1];
     const at = (s) => {
@@ -429,6 +648,8 @@
       const t = (s - cum[i - 1]) / Math.max(cum[i] - cum[i - 1], 1e-6);
       return [route[i - 1][0] + (route[i][0] - route[i - 1][0]) * t, route[i - 1][1] + (route[i][1] - route[i - 1][1]) * t];
     };
+    ensureAround(state.cur);
+    state.map.getSource("demo").setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: route } });
     beginNav("demo");
     state.map.setLayoutProperty("demo-glow", "visibility", "visible");
     state.camBearing = bearing(at(0), at(25));
@@ -441,22 +662,24 @@
       state.raf = requestAnimationFrame(step);
     };
     state.raf = requestAnimationFrame(step);
-    toast("데모: 실제 속도의 4배로 달려요");
+    toast(`데모: ${reg.label} 추천 경로 ${(total / 1000).toFixed(1)}km를 4배속으로 달려요`);
   }
 
-  // ---------- 실제 GPS ----------
+  // ---------- 실제 GPS (전국 어디서나: 지금 있는 시군구를 찾아 자동으로 불러옴) ----------
   function startGps() {
     if (!("geolocation" in navigator)) return toast("이 기기에서는 위치를 쓸 수 없어요");
     if (state.nav) stopNav();
     let started = false, prev = null, heading = 0;
+    toast("내 위치를 찾는 중…", 3000);
     state.watchId = navigator.geolocation.watchPosition((p) => {
       const pos = [p.coords.longitude, p.coords.latitude];
-      const b = state.meta.bounds;
       if (!started) {
-        if (pos[0] < b[0] - .02 || pos[0] > b[2] + .02 || pos[1] < b[1] - .02 || pos[1] > b[3] + .02) {
-          toast(`지금 위치는 ${state.meta.label} 지도 밖이에요. 데모 주행으로 확인해 보세요.`, 6000);
+        const code = regionAt(pos);
+        if (!code) {
+          toast("지금 위치는 러닝 지도(국내 시군구) 밖이에요. 데모 주행으로 확인해 보세요.", 6000);
           navigator.geolocation.clearWatch(state.watchId); state.watchId = null; return;
         }
+        setCurrent(code, true);
         beginNav("gps"); started = true;
       }
       if (p.coords.heading != null && !isNaN(p.coords.heading) && (p.coords.speed || 0) > 0.6) heading = p.coords.heading;
@@ -464,9 +687,12 @@
       if (!prev || haversine(prev, pos) > 4) prev = pos;
       update(pos, heading, performance.now());
     }, (err) => {
+      if (started && err.code !== 1) return toast("GPS 신호가 약해요. 계속 찾는 중…", 2500);   // 잠깐 끊겨도 안내는 유지
       toast(err.code === 1 ? "위치 권한을 허용해 주세요 (브라우저 설정)" : "위치를 찾지 못했어요");
+      if (state.watchId != null) navigator.geolocation.clearWatch(state.watchId);
+      state.watchId = null;
       if (state.nav === "gps") stopNav();
-    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
   }
 
   // ---------- 앱처럼 설치 ----------
