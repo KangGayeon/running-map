@@ -405,15 +405,23 @@
   const thin = (line, n) => { const k = Math.max(1, Math.ceil(line.length / n)); return line.filter((_, i) => i % k === 0 || i === line.length - 1).map(r5); };
   function idleInfo() {
     const p = state.cur && state.byCode[state.cur], reg = state.cur && state.loaded.get(state.cur);
-    return { type: "idle", region: p ? p.label : null, courseKm: reg && reg.route ? reg.demo_m / 1000 : null,
-             toilets: reg && reg.route ? toiletsNear(reg.route, 150) : null };
+    const m = { type: "idle", region: p ? p.label : null, courseKm: reg && reg.route ? reg.demo_m / 1000 : null,
+                toilets: reg && reg.route ? toiletsNear(reg.route, 150) : null };
+    if (reg && reg.route) {                       // 워치 시작 화면용 코스 미리보기 + 주변 길
+      let x0 = 180, x1 = -180, y0 = 90, y1 = -90;
+      for (const [x, y] of reg.route) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+      const c = [(x0 + x1) / 2, (y0 + y1) / 2];
+      m.course = thin(reg.route, 300);
+      m.lines = nearbyLines(c, Math.min(1500, Math.max(haversine([x0, y0], [x1, y1]) * .65, 300)), 1500);
+    }
+    return m;
   }
-  function nearbyLines(pos, m) {          // 워치 지도용: 내 주변 러닝 길
+  function nearbyLines(pos, m, max = 600) {          // 워치 지도용: 내 주변 러닝 길
     const dx = m / (111320 * Math.cos(rad(pos[1]))), dy = m / 110540, out = [];
     const inBox = (c) => Math.abs(c[0] - pos[0]) < dx && Math.abs(c[1] - pos[1]) < dy;
     for (const reg of state.loaded.values()) for (const f of reg.lines) {
       const cs = f.geometry.coordinates;
-      if (inBox(cs[0]) || inBox(cs[cs.length - 1]) || inBox(cs[cs.length >> 1])) { out.push([f.properties.r, cs.map(r5)]); if (out.length > 600) return out; }
+      if (inBox(cs[0]) || inBox(cs[cs.length - 1]) || inBox(cs[cs.length >> 1])) { out.push([f.properties.r, cs.map(r5)]); if (out.length > max) return out; }
     }
     return out;
   }

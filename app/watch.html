@@ -93,6 +93,9 @@
   .c.lime { background: var(--lime); color: var(--lime-ink); } .c.red { background: #2a1d1d; color: var(--danger); }
 
   /* 시작 화면 */
+  .prev { opacity: .55; }
+  #vIdle::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, rgba(0,0,0,.55) 25%, rgba(0,0,0,0) 75%); pointer-events: none; }
+  #vIdle > :not(svg) { position: relative; z-index: 1; }
   .pill { display: flex; align-items: center; gap: .6em; width: 72%; padding: .7em 1em; border-radius: 99px; font-weight: 800; font-size: 1.15em; text-align: left; }
   .pill.lime { background: var(--lime); color: var(--lime-ink); box-shadow: 0 8px 24px rgba(200,242,91,.18); }
   .pill.gray { background: var(--card-2); color: #c5c9cd; margin-top: .6em; font-size: 1em; }
@@ -142,6 +145,7 @@
 
   <!-- 시작 -->
   <div class="view" id="vIdle" hidden>
+    <svg class="mapsvg prev" id="prevSvg" viewBox="-1 -1 2 2" aria-hidden="true"></svg>
     <div class="region" id="iRegion">휴대폰에서 지역을 골라 주세요</div>
     <button class="pill lime" id="iStart">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4" r="2" fill="currentColor" stroke="none"/><path d="M13.6 7 11.6 13.4M13 8.6l3.4 1.6 1.8-2M13 8.6 9.8 9.4 8.2 12.2M11.6 13.4l3.4 2.4-1.2 4.6M11.6 13.4l-3 3.2-3.4.6"/></svg>
@@ -159,7 +163,13 @@
   <!-- 달리는 중 (4페이지) -->
   <div class="view" id="vRun" hidden>
     <div class="track" id="track">
-      <!-- 1. 기록 -->
+      <!-- 1. 지도 -->
+      <section class="page">
+        <svg class="mapsvg" id="mapSvg" viewBox="-1 -1 2 2" aria-label="내 주변 지도"></svg>
+        <div class="mtag"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4" r="2" fill="currentColor" stroke="none"/><path d="M13.6 7 11.6 13.4M13 8.6l3.4 1.6M13 8.6 9.8 9.4M11.6 13.4l3.4 2.4-1.2 4.6M11.6 13.4l-3 3.2"/></svg></i>Running</div>
+        <div class="mbar"><b class="num" id="mTime">00:00</b><button id="mPause" aria-label="일시정지"></button></div>
+      </section>
+      <!-- 2. 기록 -->
       <section class="page">
         <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
           <circle class="bg" cx="50" cy="50" r="47" fill="none" stroke-width="2.6"/>
@@ -176,18 +186,12 @@
         </div>
         <div class="chip"><span>🚻</span><span class="ar" id="rAr">↑</span><span class="num" id="rToilet">화장실 찾는 중</span></div>
       </section>
-      <!-- 2. 화장실 방향 -->
+      <!-- 3. 화장실 방향 -->
       <section class="page">
         <div class="label" id="tHead">앞쪽 화장실</div>
         <div class="arrowbig" id="tArrow" style="margin-top:.6em"><svg viewBox="0 0 24 24"><path d="M12 3l7 9h-4.5v9h-5v-9H5z" fill="currentColor"/></svg></div>
         <div class="tdist num" id="tDist">–</div>
         <div class="tname" id="tName"></div>
-      </section>
-      <!-- 3. 지도 -->
-      <section class="page">
-        <svg class="mapsvg" id="mapSvg" viewBox="-1 -1 2 2" aria-label="내 주변 지도"></svg>
-        <div class="mtag"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4" r="2" fill="currentColor" stroke="none"/><path d="M13.6 7 11.6 13.4M13 8.6l3.4 1.6M13 8.6 9.8 9.4M11.6 13.4l3.4 2.4-1.2 4.6M11.6 13.4l-3 3.2"/></svg></i>Running</div>
-        <div class="mbar"><b class="num" id="mTime">00:00</b><button id="mPause" aria-label="일시정지"></button></div>
       </section>
       <!-- 4. 일시정지·종료 -->
       <section class="page">
@@ -264,15 +268,17 @@
 
   // ---- 내 주변 지도 (진행 방향이 위쪽, 반경 약 350m) ----
   const RANGE = 350;
+  let V = { c: null, h: 0, range: 350, oy: .18 };          // 지금 그리는 지도의 중심·방향·반경
   function proj(c) {
-    const [lon0, lat0] = S.pos, h = S.heading * Math.PI / 180;
+    const [lon0, lat0] = V.c, h = V.h * Math.PI / 180, RANGE = V.range;
     const dx = (c[0] - lon0) * 111320 * Math.cos(lat0 * Math.PI / 180), dy = (c[1] - lat0) * 110540;
     const x = dx * Math.cos(h) - dy * Math.sin(h), y = dx * Math.sin(h) + dy * Math.cos(h);
-    return [(x / RANGE).toFixed(3), (-(y / RANGE) + .18).toFixed(3)];
+    return [(x / RANGE).toFixed(3), (-(y / RANGE) + V.oy).toFixed(3)];
   }
   const path = (cs) => cs.length < 2 ? "" : "M" + cs.map((c) => proj(c).join(",")).join("L");
   function drawMap() {
-    if (!S.pos || S.page !== 2) return;
+    if (!S.pos || S.page !== 0) return;
+    V = { c: S.pos, h: S.heading, range: RANGE, oy: .18 };
     let g = "";
     for (const [r, cs] of S.lines) g += `<path d="${path(cs)}" stroke="${r === "A" ? "#3d4248" : "#2a2e33"}" stroke-width="${r === "A" ? .035 : .022}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
     if (S.course) g += `<path d="${path(S.course)}" stroke="rgba(255,255,255,.35)" stroke-width=".025" stroke-dasharray=".05 .04" fill="none"/>`;
@@ -287,6 +293,23 @@
     $("mapSvg").innerHTML = g;
   }
 
+  // 시작 화면 뒤에 깔리는 추천 코스 미리보기 (북쪽이 위, 코스 전체가 보이게)
+  function drawPreview(m) {
+    const el = $("prevSvg");
+    if (!m.course || m.course.length < 2) { el.innerHTML = ""; return; }
+    let x0 = 180, x1 = -180, y0 = 90, y1 = -90;
+    for (const [x, y] of m.course) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    const c = [(x0 + x1) / 2, (y0 + y1) / 2];
+    const ext = Math.max((x1 - x0) * 111320 * Math.cos(c[1] * Math.PI / 180), (y1 - y0) * 110540) / 2;
+    V = { c, h: 0, range: Math.max(250, ext * 1.25), oy: 0 };
+    let g = "";
+    for (const [r, cs] of m.lines || []) g += `<path d="${path(cs)}" stroke="${r === "A" ? "#3d4248" : "#262a2e"}" stroke-width="${r === "A" ? .03 : .018}" fill="none" stroke-linecap="round"/>`;
+    g += `<path d="${path(m.course)}" stroke="#c8f25b" stroke-width=".05" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>`;
+    const [sx, sy] = proj(m.course[0]);
+    g += `<circle cx="${sx}" cy="${sy}" r=".05" fill="#c8f25b" stroke="#000" stroke-width=".02"/>`;
+    el.innerHTML = g;
+  }
+
   // ---- 휴대폰에서 오는 메시지 ----
   function onMsg(m) {
     S.lastMsg = Date.now();
@@ -295,6 +318,7 @@
       $("iRegion").textContent = m.region || "휴대폰에서 지역을 골라 주세요";
       $("iCourse").textContent = m.courseKm ? `추천 코스 ${m.courseKm.toFixed(1)}km · 화장실 ${m.toilets}곳` : "추천 코스 없음";
       $("iStart").disabled = !m.courseKm; $("iStart").style.opacity = m.courseKm ? 1 : .4;
+      drawPreview(m);
     } else if (m.type === "count") {
       show("count"); const n = $("countN"); n.textContent = m.n; n.style.animation = "none"; void n.offsetWidth; n.style.animation = "";
     } else if (m.type === "start") {
