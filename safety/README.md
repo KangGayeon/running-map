@@ -113,3 +113,4 @@ AI Studio 앱은 웹에서 파일을 받아와야 하므로 **`share` 폴더를 
 - 보안등 258,203건(14%, 청주·여수·강남·고양 등)은 원본에 좌표가 없고 주소만 있어서 빠졌다. 지오코딩 키(카카오·브이월드)가 있으면 주소로 채울 수 있다.
 - 경찰관서는 주소만 있는 공공자료를 OSM 이름 매칭으로 좌표화했다. 광역시는 일부가 빠져 있다 (`police_missing_coords_n`).
 - 다시 만들기: (`python safety/fetch_api.py`) → `python safety/preprocess.py` → `python safety/analyze.py r020 …` → `python safety/export_share.py`
+- 
