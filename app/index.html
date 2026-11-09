@@ -795,7 +795,7 @@
     $("btnHome").onclick = goHome;
     $("permOk").onclick = runGps;
     $("permNo").onclick = () => { $("perm").hidden = true; };
-    $("watchRow").onclick = () => { const w = window.open("watch.html", "runnavi-watch", "width=520,height=640"); if (!w) location.href = "watch.html"; };
+    $("watchRow").onclick = () => { const w = window.open("watch/", "runnavi-watch", "width=520,height=640"); if (!w) location.href = "watch/"; };
     window.addEventListener("resize", () => state.map && state.map.setPadding(padFor(state.screen)));
   }).catch((e) => {
     console.error(e);

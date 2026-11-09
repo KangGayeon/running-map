@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>러닝 내비 워치</title>
 <meta name="theme-color" content="#0a0b0c">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="../icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
@@ -230,7 +230,7 @@
 <div class="bar">
   <button id="shapeRound" aria-pressed="true">○ 원형 (갤럭시 워치)</button>
   <button id="shapeSquare" aria-pressed="false">▢ 사각형</button>
-  <a href="index.html" target="runnavi-phone" id="phoneLink">📱 휴대폰 화면 열기</a>
+  <a href="../" target="runnavi-phone" id="phoneLink">📱 휴대폰 화면 열기</a>
 </div>
 
 <script>
@@ -369,7 +369,7 @@
       }
     }, 1200);
   }
-  $("openPhone").onclick = () => { window.open("index.html", "runnavi-phone"); setTimeout(hello, 2500); };
+  $("openPhone").onclick = () => { window.open("../", "runnavi-phone"); setTimeout(hello, 2500); };
   setInterval(() => { if (S.view === "wait") hello(); }, 4000);
   hello();
 
