@@ -25,9 +25,9 @@ window.SafetyLayer = (() => {
   const ang = (a, b) => ((b - a + 540) % 360) - 180;
   const fmt = (m) => m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${Math.round(m / 10) * 10}m`;
   const pct = (v) => v == null ? "–" : `${Math.round(v)}%`;
-  // 1km를 화면 픽셀로 (위도 36.5° 기준, 줌마다 2배)
-  const kmPx = (km) => ["interpolate", ["exponential", 2], ["zoom"], 8, km * 1000 * 256 / 125842 * 0.25,
-                        20, km * 1000 * 256 / 125842 * 1024];
+  // 1km를 화면 픽셀로: MapLibre(512px 타일)에서 1픽셀 = 78271.5×cos(위도)/2^줌 m → 위도 36.5° 기준 62,930/2^줌 m
+  const kmPx = (km) => ["interpolate", ["exponential", 2], ["zoom"], 8, km * 1000 * 2 ** 8 / 62930,
+                        20, km * 1000 * 2 ** 20 / 62930];
 
   function css() {
     const st = document.createElement("style");
