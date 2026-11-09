@@ -111,6 +111,7 @@ AI Studio 앱은 웹에서 파일을 받아와야 하므로 **`share` 폴더를 
 
 - 모두 **전체 자료**다 (신호등·횡단보도·보안등은 오픈API로 전체 수집, 2026-11). 다만 표준데이터에 등록하지 않은 지자체가 있어서, 251개 시군구 중 자료가 있는 곳은 신호 106곳, 횡단보도 96곳, 보안등 244곳, CCTV 251곳이다. `has_*_data`가 false면 '시설 0개'가 아니라 '자료 없음'이다.
 - 보안등 258,203건(14%, 청주·여수·강남·고양 등)은 원본에 좌표가 없고 주소만 있어서 빠졌다. 지오코딩 키(카카오·브이월드)가 있으면 주소로 채울 수 있다.
-- 경찰관서는 주소만 있는 공공자료를 OSM 이름 매칭으로 좌표화했다. 광역시는 일부가 빠져 있다 (`police_missing_coords_n`).
+- 경찰관서는 주소만 있는 공공자료를 OSM 이름 매칭으로 좌표화했다. 광역시는 일부가 빠져 있다
+- (`police_missing_coords_n`).
 - 다시 만들기: (`python safety/fetch_api.py`) → `python safety/preprocess.py` → `python safety/analyze.py r020 …` → `python safety/export_share.py`
 - 
