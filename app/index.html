@@ -310,6 +310,7 @@
 <div class="loading" id="loading" hidden>러닝 길 불러오는 중…</div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="safety.js"></script><!-- 안전시설 레이어 (없어도 앱 동작) -->
 <script>
 (() => {
   const DATA = "data/";
@@ -596,6 +597,7 @@
       state.toilets = regs.flatMap((r) => r.pois.filter((p) => p.properties.t === "toilet")
         .map((p) => ({ ll: p.geometry.coordinates, name: p.properties.n })));
       map.setFilter("regions-cur", ["==", ["get", "code"], state.cur || ""]);
+      window.SafetyLayer?.refresh();                                  // 안전시설 레이어
       if (state.screen === "home") renderHome();
       if (state.nav && state.pos) map.once("idle", () => {       // 달리는 중이면 새 길이 그려진 뒤 안내 다시 계산
         if (state.nav && state.pos) { state.lastUi = 0; update(state.pos, state.heading, performance.now(), true); }
@@ -635,6 +637,7 @@
       $("courseName").textContent = "추천 코스";
       $("courseInfo").textContent = p ? (reg ? "이 지역은 추천 코스가 없어요" : "코스 불러오는 중…") : "지도에서 지역을 누르면 추천 코스가 나와요";
     }
+    window.SafetyLayer?.onHome(state.cur);                            // 안전 점수 표시
   }
   async function selectRegion(code, fly = true) {
     if (!state.byCode[code]) return;
@@ -800,6 +803,7 @@
       state.startPin = new maplibregl.Marker({ element: ps, opacityWhenCovered: "1" });
       const pe = document.createElement("div"); pe.className = "pin end";
       state.endPin = new maplibregl.Marker({ element: pe, opacityWhenCovered: "1" });
+      try { window.SafetyLayer?.init(map, state); } catch (e) { console.error("안전시설 레이어", e); }
 
       const q = new URLSearchParams(location.search).get("r");
       let last = null; try { last = localStorage.getItem("runnavi-region"); } catch (e) {}
@@ -849,6 +853,7 @@
     $("cFlat").textContent = p.flat_pct != null ? `평지 ${p.flat_pct.toFixed(0)}% 지역` : "전용로·평지 위주";
     $("cTime").textContent = `6'00" 페이스로 약 ${Math.round(km * RUN_PACE_SEC / 60)}분`;
     $("cToilet").textContent = `${toiletsNear(reg.route, 150)}곳`;
+    window.SafetyLayer?.onCourse(state.cur);                          // 코스 안전 정보
     show("course");
     drawCourse(reg.route);
     state.map.setPaintProperty("course-line", "line-opacity", 1);
@@ -911,6 +916,7 @@
     state.watchId = null; cancelAnimationFrame(state.raf); clearInterval(state.clockTimer);
     state.nextMark.remove(); state.nextShown = false;
     state.me.remove(); state.meShown = false;
+    window.SafetyLayer?.onStop();
   }
   function finish() {
     const sec = clockSec(), kind = state.nav;
@@ -1000,6 +1006,7 @@
       $("nextDist").textContent = "–"; $("nextName").textContent = "5km 안에 화장실 정보 없음"; $("nextEta").textContent = "";
       $("arrow").style.transform = "";
     }
+    window.SafetyLayer?.onUpdate(pos, state.heading);                 // 앞 신호·가까운 24시간 경찰
 
     const p = map.project(pos);
     const fs = map.queryRenderedFeatures([[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]], { layers: ["run-inner"] });
