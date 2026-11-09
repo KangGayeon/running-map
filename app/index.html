@@ -407,11 +407,23 @@
     const p = state.cur && state.byCode[state.cur], reg = state.cur && state.loaded.get(state.cur);
     const m = { type: "idle", region: p ? p.label : null, courseKm: reg && reg.route ? reg.demo_m / 1000 : null,
                 toilets: reg && reg.route ? toiletsNear(reg.route, 150) : null };
+    if (state.map) {                              // 워치 1인칭 지도용: 휴대폰 지도 가운데 = 지금 위치(미리보기)
+      // 지도를 크게 보고 있으면 지도 가운데, 아니면 추천 코스 출발점을 기준으로
+      const route = reg && reg.route, zoomed = state.map.getZoom() >= 12;
+      const c = zoomed ? state.map.getCenter().toArray() : route ? route[0] : null;
+      if (c) {
+        m.here = r5(c);
+        m.hereH = zoomed ? state.map.getBearing() : bearing(route[0], route[Math.min(route.length - 1, 8)]);
+        m.hereLines = nearbyLines(c, 700, 1200);
+        m.hereToilets = state.toilets.filter((t) => haversine(t.ll, c) < 900).slice(0, 40).map((t) => r5(t.ll));
+      }
+    }
     if (reg && reg.route) {                       // 워치 시작 화면용 코스 미리보기 + 주변 길
       let x0 = 180, x1 = -180, y0 = 90, y1 = -90;
       for (const [x, y] of reg.route) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
       const c = [(x0 + x1) / 2, (y0 + y1) / 2];
       m.course = thin(reg.route, 300);
+      m.courseToilets = state.toilets.filter((t) => reg.route.some((q, i) => i % 5 === 0 && haversine(q, t.ll) < 150)).map((t) => r5(t.ll));
       m.lines = nearbyLines(c, Math.min(1500, Math.max(haversine([x0, y0], [x1, y1]) * .65, 300)), 1500);
     }
     return m;
@@ -746,6 +758,10 @@
           .setHTML(`${POI[p.t][0]} <b>${POI[p.t][2]}</b>${p.n ? "<br>" + p.n : ""}`).addTo(map);
       });
       map.on("moveend", loadVisible);
+      map.on("moveend", () => {                   // 지도를 움직이면 워치 1인칭 지도도 따라감
+        if (state.nav || state.screen !== "home" || !bc) return;
+        clearTimeout(state.idlePostT); state.idlePostT = setTimeout(() => post(idleInfo()), 300);
+      });
 
       const meEl = document.createElement("div");
       meEl.className = "me";
