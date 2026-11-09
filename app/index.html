@@ -131,6 +131,16 @@
   .done .grid4 { grid-template-columns: repeat(2, 1fr); margin-bottom: 14px; }
   .bigbtn { width: 100%; height: 54px; border-radius: 18px; background: var(--lime); color: var(--lime-ink); font-weight: 800; font-size: 16px; }
 
+  /* ---- 위치 권한 안내 ---- */
+  .perm { position: fixed; inset: 0; z-index: 22; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.6); }
+  .perm-card { width: 100%; max-width: 560px; background: var(--card); border-radius: 28px 28px 0 0;
+    padding: 22px 20px calc(env(safe-area-inset-bottom, 0px) + 18px); text-align: center; }
+  .perm-ic { width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 50%; background: var(--lime); display: grid; place-items: center; font-size: 26px; }
+  .perm-card h3 { margin: 0 0 8px; font-size: 19px; }
+  .perm-card p { margin: 0 0 18px; color: var(--ink-2); font-size: 14px; line-height: 1.6; text-align: left; }
+  .perm-card p b { color: var(--ink); }
+  .perm-no { width: 100%; height: 44px; margin-top: 6px; color: var(--ink-2); font-weight: 600; }
+
   /* ---- 카운트다운 / 알림 ---- */
   .count { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(10,11,12,.82); }
   .count b { font-size: 140px; font-weight: 900; color: var(--lime); animation: pop .9s ease-out both; }
@@ -208,6 +218,11 @@
       <span class="t"><b id="courseName">추천 코스</b><small id="courseInfo">지도에서 지역을 누르면 추천 코스가 나와요</small></span>
       <span class="go" aria-hidden="true">›</span>
     </button>
+    <button class="row" id="watchRow">
+      <span class="ic" aria-hidden="true">⌚</span>
+      <span class="t"><b>워치 화면 같이 보기</b><small>갤럭시 워치 시제품 화면이 새 창으로 열리고 실시간 연동돼요</small></span>
+      <span class="go" aria-hidden="true">›</span>
+    </button>
     <button class="row" id="gpsRow">
       <span class="ic" aria-hidden="true">📍</span>
       <span class="t"><b>지금 내 위치에서 달리기</b><small>GPS로 기록하고 앞쪽 화장실을 알려줘요</small></span>
@@ -280,6 +295,16 @@
   </div>
 </section>
 
+<!-- 위치 권한 안내 -->
+<div class="perm" id="perm" hidden role="dialog" aria-modal="true" aria-labelledby="permTitle">
+  <div class="perm-card">
+    <div class="perm-ic" aria-hidden="true">📍</div>
+    <h3 id="permTitle">위치를 사용할게요</h3>
+    <p id="permText"></p>
+    <button class="bigbtn" id="permOk">위치 허용하기</button>
+    <button class="perm-no" id="permNo">나중에</button>
+  </div>
+</div>
 <div class="count" id="count" hidden><b id="countNum">3</b></div>
 <div class="toast" id="toast" role="status" hidden></div>
 <div class="loading" id="loading" hidden>러닝 길 불러오는 중…</div>
@@ -373,6 +398,51 @@
     return state.toilets.filter((t) => t.ll[0] > minX - pad && t.ll[0] < maxX + pad && t.ll[1] > minY - pad && t.ll[1] < maxY + pad
       && pts.some((p) => haversine(p, t.ll) <= m)).length;
   }
+  // ---------- 워치 화면과 연동 (같은 브라우저의 다른 창/탭으로 실시간 전송) ----------
+  const bc = "BroadcastChannel" in window ? new BroadcastChannel("runnavi") : null;
+  const post = (m) => { try { bc && bc.postMessage(m); } catch (e) {} };
+  const r5 = (c) => [Math.round(c[0] * 1e5) / 1e5, Math.round(c[1] * 1e5) / 1e5];
+  const thin = (line, n) => { const k = Math.max(1, Math.ceil(line.length / n)); return line.filter((_, i) => i % k === 0 || i === line.length - 1).map(r5); };
+  function idleInfo() {
+    const p = state.cur && state.byCode[state.cur], reg = state.cur && state.loaded.get(state.cur);
+    return { type: "idle", region: p ? p.label : null, courseKm: reg && reg.route ? reg.demo_m / 1000 : null,
+             toilets: reg && reg.route ? toiletsNear(reg.route, 150) : null };
+  }
+  function nearbyLines(pos, m) {          // 워치 지도용: 내 주변 러닝 길
+    const dx = m / (111320 * Math.cos(rad(pos[1]))), dy = m / 110540, out = [];
+    const inBox = (c) => Math.abs(c[0] - pos[0]) < dx && Math.abs(c[1] - pos[1]) < dy;
+    for (const reg of state.loaded.values()) for (const f of reg.lines) {
+      const cs = f.geometry.coordinates;
+      if (inBox(cs[0]) || inBox(cs[cs.length - 1]) || inBox(cs[cs.length >> 1])) { out.push([f.properties.r, cs.map(r5)]); if (out.length > 600) return out; }
+    }
+    return out;
+  }
+  function broadcastTick(force) {
+    if (!bc || !state.nav || !state.pos) return;
+    const now = performance.now(), sec = clockSec();
+    const m = { type: "tick", kind: state.nav, paused: state.paused, time: sec, dist: state.dist, climb: state.climb,
+      pace: state.dist > 30 ? sec / (state.dist / 1000) : null, pos: r5(state.pos), heading: state.camBearing,
+      target: state.target || null, progress: state.nav === "demo" && state.demoTotal ? state.demoS / state.demoTotal : null };
+    if (force || now - (state.lastTraceSend || 0) > 1000) { state.lastTraceSend = now; m.trace = thin(state.trace, 400); }
+    if (force || now - (state.lastNearSend || 0) > 2500) {
+      state.lastNearSend = now;
+      m.lines = nearbyLines(state.pos, 700);
+      m.toilets = state.toilets.filter((t) => haversine(t.ll, state.pos) < 900).slice(0, 40).map((t) => r5(t.ll));
+    }
+    post(m);
+  }
+  if (bc) bc.onmessage = (e) => {
+    const c = e.data && e.data.cmd;
+    if (c === "hello") {
+      if (!state.nav) post(state.screen === "done" && state.lastDone ? state.lastDone : idleInfo());
+      else { post({ type: "start", kind: state.nav, course: state.courseThin || null, region: state.cur ? state.byCode[state.cur].label : "" }); broadcastTick(true); }
+    } else if (c === "start" && !state.nav) { if (state.screen !== "home") goHome(); startDemo(); }
+    else if (c === "gps" && !state.nav) { if (state.screen !== "home") goHome(); startGps(); }
+    else if (c === "pause") setPaused(true);
+    else if (c === "resume") setPaused(false);
+    else if (c === "stop" && state.nav) finish();
+    else if (c === "home" && !state.nav) goHome();
+  };
   const clockSec = () => (state.clock.acc + (state.clock.since ? performance.now() - state.clock.since : 0)) / 1000
     * (state.nav === "demo" ? DEMO_X : 1);
 
@@ -529,6 +599,7 @@
     ensureAround(code); refreshSources();
   }
   function renderHome() {
+    setTimeout(() => !state.nav && state.screen === "home" && post(idleInfo()), 0);
     const p = state.cur && state.byCode[state.cur], reg = state.cur && state.loaded.get(state.cur);
     $("hRun").innerHTML = p && p.run_km != null ? `${p.run_km.toLocaleString()}<em>km</em>` : "–";
     $("hA").innerHTML = p && p.a_pct != null ? `${p.a_pct.toFixed(0)}<em>%</em>` : "–";
@@ -714,6 +785,9 @@
       finish();
     };
     $("btnHome").onclick = goHome;
+    $("permOk").onclick = runGps;
+    $("permNo").onclick = () => { $("perm").hidden = true; };
+    $("watchRow").onclick = () => { const w = window.open("watch.html", "runnavi-watch", "width=520,height=640"); if (!w) location.href = "watch.html"; };
     window.addEventListener("resize", () => state.map && state.map.setPadding(padFor(state.screen)));
   }).catch((e) => {
     console.error(e);
@@ -756,6 +830,7 @@
       const el = $("count"), num = $("countNum"); el.hidden = false;
       let n = 3;
       const tick = () => {
+        post({ type: "count", n: n || "GO" });
         if (n === 0) { num.textContent = "GO"; num.style.animation = "none"; void num.offsetWidth; num.style.animation = "";
           return setTimeout(() => { el.hidden = true; res(); }, 600); }
         num.textContent = n; num.style.animation = "none"; void num.offsetWidth; num.style.animation = "";
@@ -777,7 +852,8 @@
     $("pausedTag").hidden = true; $("btnPause").classList.remove("paused"); setPauseIcon(false);
     show("run");
     clearInterval(state.clockTimer);
-    state.clockTimer = setInterval(() => { $("sTime").textContent = fmtTime(clockSec()); }, 250);
+    state.clockTimer = setInterval(() => { $("sTime").textContent = fmtTime(clockSec()); broadcastTick(); }, 250);
+    post({ type: "start", kind, course: state.courseThin || null, region: state.cur ? state.byCode[state.cur].label : "" });
   }
   function setPauseIcon(paused) {
     $("pauseIcon").innerHTML = paused ? `<path d="M8 5l11 7-11 7z" fill="currentColor"/>`
@@ -792,6 +868,7 @@
     else { state.clock.since = now; state.lastPos = null; }
     $("pausedTag").hidden = !p; $("btnPause").classList.toggle("paused", p); setPauseIcon(p);
     state.meEl.classList.toggle("moving", false);
+    broadcastTick(true);
   }
   function stopTracking() {
     if (state.watchId != null) navigator.geolocation.clearWatch(state.watchId);
@@ -809,6 +886,9 @@
     $("dClimb").innerHTML = `${Math.round(state.climb)}<em>m</em>`;
     $("dToilet").innerHTML = `${toiletsNear(state.trace, 80)}<em>곳</em>`;
     $("dWhen").textContent = `${kind === "demo" ? "데모 러닝" : "러닝"} 완료 · ${state.cur ? state.byCode[state.cur].label : ""}`;
+    state.lastDone = { type: "done", dist: state.dist, time: sec, pace: sec / (state.dist / 1000), climb: state.climb,
+                       toilets: toiletsNear(state.trace, 80), trace: thin(state.trace, 400) };
+    post(state.lastDone);
     state.map.getSource("trace").setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: state.trace } });
     clearCourse();
     show("done");
@@ -816,7 +896,7 @@
     state.map.fitBounds(b, { pitch: 0, bearing: 0, duration: 1000, maxZoom: 16 });
   }
   function goHome() {
-    stopTracking(); state.nav = null;
+    stopTracking(); state.nav = null; state.courseThin = null; state.lastDone = null;
     state.map.getSource("trace").setData({ type: "FeatureCollection", features: [] });
     clearCourse(); show("home"); renderHome();
     state.map.easeTo({ pitch: 45, bearing: 0, zoom: Math.min(state.map.getZoom(), 14.5), duration: 900 });
@@ -870,6 +950,8 @@
       if (Math.abs(rel) <= 70 && d <= 5000 && (!best || d < best.d)) best = { ...t, d, rel };
     }
     const target = best || fallback;
+    state.target = target ? { d: Math.round(target.d), rel: Math.round(target.rel), ahead: !!best, name: target.name || "",
+                              k: target.ll.map((v) => v.toFixed(5)).join(",") } : null;
     if (target) {
       state.nextMark.setLngLat(target.ll);
       if (!state.nextShown) { state.nextMark.addTo(map); state.nextShown = true; }
@@ -918,11 +1000,13 @@
     state.map.jumpTo({ center: at(0), bearing: state.camBearing, pitch: 55, zoom: 17 });
     await countdown();
     drawCourse(route);
+    state.courseThin = thin(route, 400); state.demoS = 0; state.demoTotal = total;
     beginRun("demo");
     let s = 0, last = performance.now();
     const step = (now) => {
       if (state.nav !== "demo") return;
       if (!state.paused) s += DEMO_SPEED * (now - last) / 1000;
+      state.demoS = Math.min(s, total);
       last = now;
       if (s >= total) { update(at(total), state.heading, now); toast(`코스 완주! ${(total / 1000).toFixed(1)}km`); return finish(); }
       if (!state.paused || !state.meShown) { const pos = at(s); update(pos, bearing(pos, at(s + 25)), now); }
@@ -932,9 +1016,38 @@
   }
 
   // ---------- 실제 GPS ----------
-  function startGps() {
+  // ---------- 위치 권한: 앱 안에서 먼저 안내 → 브라우저 허용 창 띄우기 ----------
+  // (보안상 웹사이트가 권한을 대신 켤 수는 없고, '허용' 창을 띄우는 것까지만 가능해요)
+  function guideHtml(kind) {
+    const ua = navigator.userAgent;
+    if (/KAKAOTALK|Instagram|FBAN|FBAV|NAVER|Line\//i.test(ua))
+      return `<b>카카오톡·인스타그램 같은 앱 안에서 열면 위치가 막혀요.</b><br>오른쪽 위 <b>⋮</b> 또는 공유 버튼 → <b>다른 브라우저로 열기</b>(Chrome·Safari·삼성 인터넷)로 열어 주세요.`;
+    if (kind === "off") return `휴대폰의 <b>위치(GPS)</b>가 꺼져 있어요. 화면 위쪽을 내려서 <b>위치</b>를 켠 뒤 <b>다시 시도</b>를 눌러 주세요.`;
+    if (/iPhone|iPad/i.test(ua))
+      return `이 사이트의 위치가 '거부'로 저장돼 있어요.<br>① 주소창 왼쪽 <b>가가(ᴀA)</b> 버튼 → <b>웹 사이트 설정</b> → <b>위치: 허용</b><br>② 안 되면 <b>설정 → 개인정보 보호 및 보안 → 위치 서비스 → Safari 웹 사이트 → 앱을 사용하는 동안</b>`;
+    if (/SamsungBrowser/i.test(ua))
+      return `이 사이트의 위치가 '차단'으로 저장돼 있어요.<br>주소창 왼쪽 <b>자물쇠</b> 아이콘 → <b>권한</b>(사이트 권한) → <b>위치: 허용</b> 후 <b>다시 시도</b>를 눌러 주세요.`;
+    return `이 사이트의 위치가 '차단'으로 저장돼 있어요.<br>주소창 왼쪽 <b>자물쇠(또는 ⚙)</b> 아이콘 → <b>권한</b> → <b>위치: 허용</b> 후 <b>다시 시도</b>를 눌러 주세요.`;
+  }
+  function permSheet(mode) {             // mode: ask | denied | off
+    $("permTitle").textContent = mode === "ask" ? "위치를 사용할게요" : "위치를 켜야 기록할 수 있어요";
+    $("permText").innerHTML = mode === "ask"
+      ? "달린 거리·페이스를 기록하고, <b>앞쪽 가장 가까운 화장실</b>을 알려주려면 내 위치가 필요해요.<br>다음 화면에서 <b>허용</b>을 눌러 주세요."
+      : guideHtml(mode);
+    $("permOk").textContent = mode === "ask" ? "위치 허용하기" : "다시 시도";
+    $("perm").hidden = false;
+  }
+  async function startGps() {
     if (!("geolocation" in navigator)) return toast("이 기기에서는 위치를 쓸 수 없어요");
+    if (!window.isSecureContext) return toast("위치는 https 주소에서만 쓸 수 있어요");
     if (!state.regions) return;
+    let st = "prompt";
+    try { st = (await navigator.permissions.query({ name: "geolocation" })).state; } catch (e) {}
+    if (st === "granted") return runGps();
+    permSheet(st === "denied" ? "denied" : "ask");
+  }
+  function runGps() {
+    $("perm").hidden = true;
     let phase = "find", prev = null, heading = 0;
     toast("내 위치를 찾는 중…", 3000);
     state.watchId = navigator.geolocation.watchPosition(async (p) => {
@@ -951,12 +1064,14 @@
         phase = "count"; setCurrent(code, true);
         state.map.jumpTo({ center: pos, pitch: 55, zoom: 17 });
         await countdown();
-        clearCourse(); beginRun("gps"); phase = "run";
+        clearCourse(); state.courseThin = null; state.demoTotal = 0; beginRun("gps"); phase = "run";
       }
       if (phase === "run" && state.nav === "gps") update(pos, heading, performance.now());
     }, (err) => {
       if (phase === "run" && err.code !== 1) return toast("GPS 신호가 약해요. 계속 찾는 중…", 2500);
-      toast(err.code === 1 ? "위치 권한을 허용해 주세요 (브라우저 설정)" : "위치를 찾지 못했어요");
+      if (err.code === 1) permSheet("denied");
+      else if (err.code === 2) permSheet("off");
+      else toast("위치를 찾지 못했어요. 하늘이 보이는 곳에서 다시 시도해 주세요");
       if (state.watchId != null) navigator.geolocation.clearWatch(state.watchId);
       state.watchId = null;
       if (state.nav === "gps") goHome();

@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>러닝 내비 워치</title>
+<meta name="theme-color" content="#0a0b0c">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  /* 갤럭시 워치 시제품: 검정 화면 + 라임 포인트 (휴대폰 앱과 같은 톤) */
+  :root {
+    --lime: #c8f25b; --lime-ink: #10120a; --ink: #f3f4f5; --ink-2: #9aa0a6; --card: #1b1d20; --card-2: #26292d;
+    --toilet: #3ddc97; --danger: #ff6b6b;
+    --font: "Manrope", "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", sans-serif;
+    --W: min(86vw, 62vh, 380px);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: radial-gradient(ellipse at 50% 35%, #1f2414 0%, #0d0e0f 55%, #08090a 100%); color: var(--ink);
+    font-family: var(--font); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    padding: 16px; -webkit-tap-highlight-color: transparent; overflow: hidden; }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+  button:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+  .cap { text-align: center; }
+  .cap b { font-size: 15px; } .cap small { display: block; color: var(--ink-2); font-size: 12px; margin-top: 4px; }
+
+  /* 워치 본체 */
+  .watch { position: relative; width: calc(var(--W) + 28px); height: calc(var(--W) + 28px); border-radius: 50%; padding: 14px;
+    background: linear-gradient(145deg, #3a3d41, #17191b 55%, #2c2f33); box-shadow: 0 30px 60px rgba(0,0,0,.6), inset 0 1px 2px rgba(255,255,255,.15); }
+  .watch::before, .watch::after { content: ""; position: absolute; right: -6px; width: 8px; height: 34px; border-radius: 4px; background: #2a2d31; }
+  .watch::before { top: 28%; } .watch::after { bottom: 28%; }
+  .screen { position: relative; width: var(--W); height: var(--W); border-radius: 50%; overflow: hidden; background: #000;
+    font-size: calc(var(--W) / 24); container-type: size; }
+  body.sq .watch, body.sq .screen { border-radius: 26%; }
+  .view { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+
+  /* 페이지 넘기기 */
+  .track { position: absolute; inset: 0; display: flex; transition: transform .35s cubic-bezier(.2,.8,.2,1); touch-action: pan-y; }
+  .page { position: relative; flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .dots { position: absolute; left: 0; right: 0; bottom: 5.5%; display: flex; justify-content: center; gap: 5px; z-index: 4; pointer-events: none; }
+  .dots i { width: 5px; height: 5px; border-radius: 3px; background: #4a4e53; transition: width .25s, background .25s; }
+  .dots i.on { width: 14px; background: var(--lime); }
+
+  /* 공통 조각 */
+  .label { font-size: .78em; color: var(--ink-2); font-weight: 600; letter-spacing: .01em; }
+  .big { font-size: 3.1em; font-weight: 800; line-height: 1; margin: .12em 0 .32em; }
+  .duo { display: flex; gap: 1.6em; }
+  .duo div { display: flex; align-items: center; gap: .45em; text-align: left; }
+  .duo svg { width: 1.6em; height: 1.6em; flex: none; color: var(--lime); }
+  .duo small { display: block; font-size: .72em; color: var(--ink-2); }
+  .duo b { font-size: 1.15em; font-weight: 800; }
+  .chip { display: inline-flex; align-items: center; gap: .4em; margin-top: 1.1em; padding: .35em .8em; border-radius: 99px;
+    background: var(--card); font-size: .82em; font-weight: 700; }
+  .chip .ar { display: inline-block; color: var(--toilet); transition: transform .3s; }
+  .ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; transform: rotate(-90deg); }
+  .ring .bg { stroke: #1d2023; } .ring .fg { stroke: var(--lime); transition: stroke-dashoffset .4s linear; }
+  .paused-tag { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); background: var(--lime); color: var(--lime-ink);
+    font-size: .7em; font-weight: 800; padding: .25em .7em; border-radius: 99px; letter-spacing: .06em; }
+
+  /* 화장실 방향 */
+  .arrowbig { width: 34%; aspect-ratio: 1; border-radius: 28%; background: var(--lime); color: var(--lime-ink); display: grid; place-items: center;
+    transition: transform .35s ease; box-shadow: 0 0 40px rgba(200,242,91,.25); }
+  .arrowbig svg { width: 62%; height: 62%; }
+  .tdist { font-size: 2.6em; font-weight: 800; line-height: 1; margin-top: .45em; }
+  .tname { font-size: .8em; color: var(--ink-2); margin-top: .35em; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* 지도 */
+  .mapsvg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .mtag { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: .45em;
+    padding: .3em .8em .3em .3em; border-radius: 99px; background: rgba(20,22,25,.85); font-size: .8em; font-weight: 700; white-space: nowrap; }
+  .mtag i { width: 1.7em; height: 1.7em; border-radius: 50%; background: var(--lime); color: var(--lime-ink); display: grid; place-items: center; font-style: normal; }
+  .mtag i svg { width: 1.1em; height: 1.1em; }
+  .mbar { position: absolute; bottom: 13%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: .8em;
+    padding: .3em .3em .3em 1em; border-radius: 99px; background: rgba(32,34,37,.95); }
+  .mbar b { font-size: 1.35em; font-weight: 800; }
+  .mbar button { width: 2.3em; height: 2.3em; border-radius: 50%; background: #0e0f11; display: grid; place-items: center; }
+  .mbar svg { width: 1em; height: 1em; }
+  @keyframes pulse { from { r: .05; opacity: .55; } to { r: .2; opacity: 0; } }
+  .pulse { animation: pulse 1.8s ease-out infinite; }
+
+  /* 버튼 페이지 */
+  .ctrls { display: flex; gap: 1.4em; }
+  .ctrls button { display: flex; flex-direction: column; align-items: center; gap: .5em; font-size: .8em; font-weight: 700; color: var(--ink-2); }
+  .ctrls .c { width: 4.6em; height: 4.6em; border-radius: 50%; display: grid; place-items: center; font-size: 1.25em; }
+  .ctrls .c svg { width: 40%; height: 40%; }
+  .c.lime { background: var(--lime); color: var(--lime-ink); } .c.red { background: #2a1d1d; color: var(--danger); }
+
+  /* 시작 화면 */
+  .pill { display: flex; align-items: center; gap: .6em; width: 72%; padding: .7em 1em; border-radius: 99px; font-weight: 800; font-size: 1.15em; text-align: left; }
+  .pill.lime { background: var(--lime); color: var(--lime-ink); transform: rotate(-4deg); box-shadow: 0 8px 24px rgba(200,242,91,.18); }
+  .pill.gray { background: var(--card-2); color: #c5c9cd; margin-top: .6em; transform: rotate(-4deg); font-size: 1em; }
+  .pill svg { width: 1.5em; height: 1.5em; flex: none; }
+  .pill small { display: block; font-size: .62em; font-weight: 600; opacity: .7; }
+  .region { font-size: .78em; color: var(--ink-2); margin-bottom: 1em; max-width: 70%; }
+
+  /* 결과 */
+  .res h4 { margin: 0 0 .7em; font-size: 1.05em; font-weight: 800; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45em; width: 68%; }
+  .tile { background: var(--card); border-radius: 1em; padding: .55em .6em; text-align: left; }
+  .tile small { display: block; font-size: .66em; color: var(--ink-2); }
+  .tile b { font-size: 1.05em; font-weight: 800; }
+  .tile.hl b { color: var(--lime); }
+  .okbtn { margin-top: .7em; padding: .45em 1.6em; border-radius: 99px; background: var(--lime); color: var(--lime-ink); font-weight: 800; font-size: .85em; }
+
+  /* 카운트다운 / 알림 */
+  .countn { font-size: 6em; font-weight: 800; color: var(--lime); animation: pop .8s ease-out both; }
+  @keyframes pop { from { transform: scale(1.6); opacity: 0; } 30% { opacity: 1; } to { transform: scale(1); } }
+  .alert { position: absolute; inset: 0; z-index: 10; background: var(--lime); color: var(--lime-ink); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; animation: flash .5s ease-out 2; }
+  @keyframes flash { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
+  .alert .ai { font-size: 2.4em; } .alert b { font-size: 2.3em; font-weight: 800; line-height: 1.05; margin-top: .15em; }
+  .alert span { font-size: .9em; font-weight: 700; margin-top: .3em; }
+  .alert .buzz { font-size: .7em; font-weight: 700; opacity: .65; margin-top: .9em; letter-spacing: .1em; }
+
+  .wait p { font-size: .85em; color: var(--ink-2); margin: .6em 0 1em; max-width: 70%; line-height: 1.5; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .bar button, .bar a { font-size: 13px; font-weight: 600; color: var(--ink-2); background: #17191b; border: 1px solid #2a2d31;
+    border-radius: 99px; padding: 8px 14px; text-decoration: none; }
+  .bar button[aria-pressed="true"] { color: var(--lime-ink); background: var(--lime); border-color: var(--lime); }
+  @media (prefers-reduced-motion: reduce) { .track, .arrowbig, .chip .ar { transition: none; } .pulse, .countn, .alert { animation: none; } }
+</style>
+</head>
+<body>
+<div class="cap"><b>⌚ 갤럭시 워치 화면 · 시제품</b><small>휴대폰 화면과 같은 브라우저에서 함께 열면 실시간으로 연동돼요 · 옆으로 밀어서 화면 넘기기</small></div>
+
+<div class="watch"><div class="screen" id="screen">
+
+  <!-- 연결 대기 -->
+  <div class="view wait" id="vWait">
+    <div class="label">러닝 내비</div>
+    <div class="big" style="font-size:1.6em;margin:.3em 0 0">휴대폰과<br>연결 중…</div>
+    <p id="waitMsg">휴대폰 화면을 찾고 있어요</p>
+    <button class="okbtn" id="openPhone" hidden>휴대폰 화면 열기</button>
+  </div>
+
+  <!-- 시작 -->
+  <div class="view" id="vIdle" hidden>
+    <div class="region" id="iRegion">휴대폰에서 지역을 골라 주세요</div>
+    <button class="pill lime" id="iStart">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4" r="2" fill="currentColor" stroke="none"/><path d="M13.6 7 11.6 13.4M13 8.6l3.4 1.6 1.8-2M13 8.6 9.8 9.4 8.2 12.2M11.6 13.4l3.4 2.4-1.2 4.6M11.6 13.4l-3 3.2-3.4.6"/></svg>
+      <span>Running<small id="iCourse">추천 코스</small></span>
+    </button>
+    <button class="pill gray" id="iGps">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+      <span>내 위치에서</span>
+    </button>
+  </div>
+
+  <!-- 카운트다운 -->
+  <div class="view" id="vCount" hidden><div class="countn" id="countN">3</div></div>
+
+  <!-- 달리는 중 (4페이지) -->
+  <div class="view" id="vRun" hidden>
+    <div class="track" id="track">
+      <!-- 1. 기록 -->
+      <section class="page">
+        <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="bg" cx="50" cy="50" r="47" fill="none" stroke-width="2.6"/>
+          <circle class="fg" id="ringFg" cx="50" cy="50" r="47" fill="none" stroke-width="2.6" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+        </svg>
+        <span class="paused-tag" id="pTag" hidden>일시정지</span>
+        <div class="label">Running Time</div>
+        <div class="big num" id="rTime">00:00</div>
+        <div class="duo">
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4" r="2" fill="currentColor" stroke="none"/><path d="M13.6 7 11.6 13.4M13 8.6l3.4 1.6 1.8-2M13 8.6 9.8 9.4 8.2 12.2M11.6 13.4l3.4 2.4-1.2 4.6M11.6 13.4l-3 3.2-3.4.6"/></svg>
+            <span><small>Distance</small><b class="num" id="rDist">0.00 km</b></span></div>
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6M12 2v3"/></svg>
+            <span><small>Pace</small><b class="num" id="rPace">–</b></span></div>
+        </div>
+        <div class="chip"><span>🚻</span><span class="ar" id="rAr">↑</span><span class="num" id="rToilet">화장실 찾는 중</span></div>
+      </section>
+      <!-- 2. 화장실 방향 -->
+      <section class="page">
+        <div class="label" id="tHead">앞쪽 화장실</div>
+        <div class="arrowbig" id="tArrow" style="margin-top:.6em"><svg viewBox="0 0 24 24"><path d="M12 3l7 9h-4.5v9h-5v-9H5z" fill="currentColor"/></svg></div>
+        <div class="tdist num" id="tDist">–</div>
+        <div class="tname" id="tName"></div>
+      </section>
+      <!-- 3. 지도 -->
+      <section class="page">
+        <svg class="mapsvg" id="mapSvg" viewBox="-1 -1 2 2" aria-label="내 주변 지도"></svg>
+        <div class="mtag"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4" r="2" fill="currentColor" stroke="none"/><path d="M13.6 7 11.6 13.4M13 8.6l3.4 1.6M13 8.6 9.8 9.4M11.6 13.4l3.4 2.4-1.2 4.6M11.6 13.4l-3 3.2"/></svg></i>Running</div>
+        <div class="mbar"><b class="num" id="mTime">00:00</b><button id="mPause" aria-label="일시정지"></button></div>
+      </section>
+      <!-- 4. 일시정지·종료 -->
+      <section class="page">
+        <div class="label" style="margin-bottom:1.1em">러닝 제어</div>
+        <div class="ctrls">
+          <button id="cPause"><span class="c lime" id="cPauseIc"></span><span id="cPauseTx">일시정지</span></button>
+          <button id="cStop"><span class="c red"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor"/></svg></span>종료</button>
+        </div>
+      </section>
+    </div>
+    <div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i></div>
+  </div>
+
+  <!-- 결과 -->
+  <div class="view res" id="vDone" hidden>
+    <h4>Running Result</h4>
+    <div class="grid">
+      <div class="tile hl"><small>Distance</small><b class="num" id="dDist">–</b></div>
+      <div class="tile"><small>Time</small><b class="num" id="dTime">–</b></div>
+      <div class="tile"><small>Pace</small><b class="num" id="dPace">–</b></div>
+      <div class="tile"><small>지나간 화장실</small><b class="num" id="dToilet">–</b></div>
+    </div>
+    <button class="okbtn" id="dOk">확인</button>
+  </div>
+
+  <!-- 화장실 알림 -->
+  <div class="alert" id="alert" hidden role="alert">
+    <div class="ai">🚻</div>
+    <b class="num" id="aDist">300m</b>
+    <span id="aTx">앞쪽에 화장실이 있어요</span>
+    <div class="buzz">· 진동 ·</div>
+  </div>
+
+</div></div>
+
+<div class="bar">
+  <button id="shapeRound" aria-pressed="true">○ 원형 (갤럭시 워치)</button>
+  <button id="shapeSquare" aria-pressed="false">▢ 사각형</button>
+  <a href="index.html" target="runnavi-phone" id="phoneLink">📱 휴대폰 화면 열기</a>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const bc = "BroadcastChannel" in window ? new BroadcastChannel("runnavi") : null;
+  const send = (cmd) => bc && bc.postMessage({ cmd });
+  const S = { view: "wait", page: 0, paused: false, time: 0, lines: [], toilets: [], trace: [], course: null, pos: null, heading: 0,
+              alerted: new Set(), alertT: null, lastMsg: 0 };
+  const PAUSE_SVG = `<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>`;
+  const PLAY_SVG = `<svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg>`;
+  const fmtTime = (s) => { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60;
+    return (h ? `${h}:${String(m).padStart(2, "0")}` : String(m).padStart(2, "0")) + ":" + String(x).padStart(2, "0"); };
+  const fmtPace = (sec) => !sec || !isFinite(sec) ? "–" : `${Math.floor(sec / 60)}'${String(Math.round(sec % 60)).padStart(2, "0")}"`;
+  const fmtDist = (m) => m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${Math.round(m / 10) * 10}m`;
+  const arrowCh = (rel) => { const a = ((rel % 360) + 360) % 360; return ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"][Math.round(a / 45) % 8]; };
+
+  function show(v) {
+    S.view = v;
+    for (const [k, id] of [["wait", "vWait"], ["idle", "vIdle"], ["count", "vCount"], ["run", "vRun"], ["done", "vDone"]]) $(id).hidden = k !== v;
+    if (v !== "run") $("alert").hidden = true;
+  }
+  function setPage(i) {
+    S.page = Math.max(0, Math.min(3, i));
+    $("track").style.transform = `translateX(${-S.page * 100}%)`;
+    [...$("dots").children].forEach((d, k) => d.classList.toggle("on", k === S.page));
+  }
+  function setPausedUi(p) {
+    S.paused = p;
+    $("pTag").hidden = !p;
+    $("mPause").innerHTML = p ? PLAY_SVG : PAUSE_SVG; $("mPause").setAttribute("aria-label", p ? "다시 달리기" : "일시정지");
+    $("cPauseIc").innerHTML = p ? PLAY_SVG : PAUSE_SVG; $("cPauseTx").textContent = p ? "다시 달리기" : "일시정지";
+  }
+  const togglePause = () => send(S.paused ? "resume" : "pause");
+
+  // ---- 내 주변 지도 (진행 방향이 위쪽, 반경 약 350m) ----
+  const RANGE = 350;
+  function proj(c) {
+    const [lon0, lat0] = S.pos, h = S.heading * Math.PI / 180;
+    const dx = (c[0] - lon0) * 111320 * Math.cos(lat0 * Math.PI / 180), dy = (c[1] - lat0) * 110540;
+    const x = dx * Math.cos(h) - dy * Math.sin(h), y = dx * Math.sin(h) + dy * Math.cos(h);
+    return [(x / RANGE).toFixed(3), (-(y / RANGE) + .18).toFixed(3)];
+  }
+  const path = (cs) => cs.length < 2 ? "" : "M" + cs.map((c) => proj(c).join(",")).join("L");
+  function drawMap() {
+    if (!S.pos || S.page !== 2) return;
+    let g = "";
+    for (const [r, cs] of S.lines) g += `<path d="${path(cs)}" stroke="${r === "A" ? "#3d4248" : "#2a2e33"}" stroke-width="${r === "A" ? .035 : .022}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+    if (S.course) g += `<path d="${path(S.course)}" stroke="rgba(255,255,255,.35)" stroke-width=".025" stroke-dasharray=".05 .04" fill="none"/>`;
+    if (S.trace.length > 1) g += `<path d="${path([...S.trace, S.pos])}" stroke="#c8f25b" stroke-width=".045" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+    for (const t of S.toilets) {
+      const [x, y] = proj(t).map(Number);
+      if (Math.abs(x) > 1.1 || Math.abs(y) > 1.1) continue;
+      g += `<g transform="translate(${x},${y})"><rect x="-.075" y="-.075" width=".15" height=".15" rx=".04" fill="#123a2a" stroke="#3ddc97" stroke-width=".015"/><text y=".035" text-anchor="middle" font-size=".1">🚻</text></g>`;
+    }
+    g += `<circle class="pulse" cx="0" cy=".18" r=".05" fill="#c8f25b"/><circle cx="0" cy=".18" r=".11" fill="rgba(200,242,91,.18)"/>
+          <circle cx="0" cy=".18" r=".055" fill="#c8f25b" stroke="#000" stroke-width=".02"/>`;
+    $("mapSvg").innerHTML = g;
+  }
+
+  // ---- 휴대폰에서 오는 메시지 ----
+  function onMsg(m) {
+    S.lastMsg = Date.now();
+    if (m.type === "idle") {
+      show("idle");
+      $("iRegion").textContent = m.region || "휴대폰에서 지역을 골라 주세요";
+      $("iCourse").textContent = m.courseKm ? `추천 코스 ${m.courseKm.toFixed(1)}km · 화장실 ${m.toilets}곳` : "추천 코스 없음";
+      $("iStart").disabled = !m.courseKm; $("iStart").style.opacity = m.courseKm ? 1 : .4;
+    } else if (m.type === "count") {
+      show("count"); const n = $("countN"); n.textContent = m.n; n.style.animation = "none"; void n.offsetWidth; n.style.animation = "";
+    } else if (m.type === "start") {
+      S.course = m.course; S.trace = []; S.alerted.clear(); show("run"); setPage(0); setPausedUi(false);
+    } else if (m.type === "tick") {
+      if (S.view !== "run") { show("run"); setPage(0); }
+      if (m.paused !== S.paused) setPausedUi(m.paused);
+      S.pos = m.pos; S.heading = m.heading || 0;
+      if (m.trace) S.trace = m.trace;
+      if (m.lines) S.lines = m.lines;
+      if (m.toilets) S.toilets = m.toilets;
+      $("rTime").textContent = $("mTime").textContent = fmtTime(m.time);
+      $("rDist").textContent = `${(m.dist / 1000).toFixed(2)} km`;
+      $("rPace").textContent = fmtPace(m.pace);
+      $("ringFg").style.strokeDashoffset = m.progress != null ? 100 - m.progress * 100 : 100;
+      const t = m.target;
+      if (t) {
+        $("rToilet").textContent = fmtDist(t.d); $("rAr").textContent = arrowCh(t.rel);
+        $("tHead").textContent = t.ahead ? "앞쪽 화장실" : "가장 가까운 화장실 (뒤쪽)";
+        $("tArrow").style.transform = `rotate(${t.rel}deg)`;
+        $("tDist").textContent = fmtDist(t.d); $("tName").textContent = t.name || "공중화장실";
+        if (t.ahead && t.d <= 300 && !S.alerted.has(t.k) && !m.paused) {          // 300m 안에 들어오면 한 번 알림
+          S.alerted.add(t.k);
+          $("aDist").textContent = fmtDist(t.d); $("alert").hidden = false;
+          try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) {}
+          clearTimeout(S.alertT); S.alertT = setTimeout(() => ($("alert").hidden = true), 3500);
+        }
+      } else {
+        $("rToilet").textContent = "근처 정보 없음"; $("rAr").textContent = "";
+        $("tDist").textContent = "–"; $("tName").textContent = "5km 안에 화장실 정보가 없어요"; $("tArrow").style.transform = "";
+      }
+      drawMap();
+    } else if (m.type === "done") {
+      show("done");
+      $("dDist").textContent = `${(m.dist / 1000).toFixed(2)}km`; $("dTime").textContent = fmtTime(m.time);
+      $("dPace").textContent = fmtPace(m.pace); $("dToilet").textContent = `${m.toilets}곳`;
+    }
+  }
+  if (bc) bc.onmessage = (e) => e.data && e.data.type && onMsg(e.data);
+
+  // ---- 연결 확인 ----
+  function hello() {
+    send("hello");
+    setTimeout(() => {
+      if (S.view === "wait" && Date.now() - S.lastMsg > 1200) {
+        $("waitMsg").textContent = bc ? "같은 브라우저에서 휴대폰 화면(앱)을 같이 열어 주세요" : "이 브라우저는 화면 연동을 지원하지 않아요";
+        $("openPhone").hidden = !bc;
+      }
+    }, 1200);
+  }
+  $("openPhone").onclick = () => { window.open("index.html", "runnavi-phone"); setTimeout(hello, 2500); };
+  setInterval(() => { if (S.view === "wait") hello(); }, 4000);
+  hello();
+
+  // ---- 버튼 ----
+  $("iStart").onclick = () => send("start");
+  $("iGps").onclick = () => send("gps");
+  $("mPause").onclick = togglePause; $("cPause").onclick = togglePause;
+  $("cStop").onclick = () => send("stop");
+  $("dOk").onclick = () => send("home");
+  $("alert").onclick = () => ($("alert").hidden = true);
+  setPausedUi(false);
+
+  // ---- 옆으로 밀기 (마우스·터치·키보드) ----
+  let sx = null, sy = null;
+  const scr = $("screen");
+  scr.addEventListener("pointerdown", (e) => { if (S.view === "run") { sx = e.clientX; sy = e.clientY; } });
+  scr.addEventListener("pointerup", (e) => {
+    if (sx == null) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+    if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) { setPage(S.page + (dx < 0 ? 1 : -1)); drawMap(); }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (S.view !== "run") return;
+    if (e.key === "ArrowRight") { setPage(S.page + 1); drawMap(); }
+    if (e.key === "ArrowLeft") { setPage(S.page - 1); drawMap(); }
+  });
+  [...$("dots").children].forEach((d, k) => d.addEventListener("click", () => setPage(k)));
+  setPage(0);
+
+  // ---- 화면 모양 ----
+  function shape(sq) {
+    document.body.classList.toggle("sq", sq);
+    $("shapeRound").setAttribute("aria-pressed", !sq); $("shapeSquare").setAttribute("aria-pressed", sq);
+    try { localStorage.setItem("runnavi-watch-shape", sq ? "sq" : "round"); } catch (e) {}
+  }
+  $("shapeRound").onclick = () => shape(false); $("shapeSquare").onclick = () => shape(true);
+  try { if (localStorage.getItem("runnavi-watch-shape") === "sq") shape(true); } catch (e) {}
+})();
+</script>
+</body>
+</html>
