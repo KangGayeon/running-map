@@ -1,6 +1,6 @@
 // 앱 화면은 항상 최신 버전을 먼저 받고(인터넷이 없으면 저장본),
 // 러닝 데이터는 저장본을 바로 보여주면서 뒤에서 새 버전으로 갱신
-const CACHE = "running-navi-v10";   // safety.js 추가·수정
+const CACHE = "running-navi-v11";   // safety.js 추가·수정
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(
   caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
