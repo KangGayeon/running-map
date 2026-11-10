@@ -490,33 +490,54 @@
     16, ["match", ["get", "r"], "A", 4, 2], 18, ["match", ["get", "r"], "A", 8, 4], 20, ["match", ["get", "r"], "A", 16, 8]];
 
   // 밝은 배경지도를 어두운 러닝 앱 톤으로 바꾸기
+  // 배경지도 색: 낮(기본) = 밝은 회색 지도 + 밝은 건물, 밤(안심모드) = 어두운 지도
+  const THEMES = {
+    day:   { bg: "#3b4148", land: "#40464d", park: "#38533f", water: "#2b5674", bldg: "#5d656e", ext: "#a7afb9", extOp: .92,
+             road: "#626b75", major: "#808a95", casing: "#30353b", rail: "#565d65", bound: "#7a828b", wline: "#2f6283",
+             label: "#e6e9ec", label2: "#c3c8cd", halo: "#2f343a" },
+    night: { bg: "#0f1113", land: "#131518", park: "#121a14", water: "#0a1620", bldg: "#24282d", ext: "#3d424a", extOp: .9,
+             road: "#272b30", major: "#363b42", casing: "#0b0c0e", rail: "#202327", bound: "#3a3f45", wline: "#0e2030",
+             label: "#aeb3b9", label2: "#6f757c", halo: "#0a0b0c" },
+  };
+  // 층마다 바꿀 색 [속성, 값]을 정함 (처음 불러올 때와 낮/밤 바꿀 때 같이 씀)
+  function themeProps(l, T) {
+    const id = l.id;
+    if (l.type === "background") return [["background-color", T.bg]];
+    if (l.type === "fill") return [["fill-color", /water|ocean|sea/.test(id) ? T.water
+      : /park|wood|forest|grass|landcover|scrub|wetland|cemetery|pitch/.test(id) ? T.park : /building/.test(id) ? T.bldg : T.land]];
+    if (l.type === "line") return [["line-color", /water|river|stream|canal/.test(id) ? T.wline : /boundary|admin/.test(id) ? T.bound
+      : /rail|transit/.test(id) ? T.rail : /casing/.test(id) ? T.casing : /motorway|trunk|primary/.test(id) ? T.major : T.road]];
+    if (l.type === "fill-extrusion") return [["fill-extrusion-color", T.ext], ["fill-extrusion-opacity", T.extOp]];
+    if (l.type === "symbol" && l.layout && l.layout["text-field"] !== undefined)
+      return [["text-color", /place|label_city|capital|country|state/.test(id) ? T.label : T.label2], ["text-halo-color", T.halo], ["text-halo-width", 1.2]];
+    return [];
+  }
+  let THEME = "day";
+  try { if (localStorage.getItem("runnavi-safety") === "1") THEME = "night"; } catch (e) {}
   function darken(style) {
+    const T = THEMES[THEME];
     for (const l of style.layers) {
-      const id = l.id, p = (l.paint = l.paint || {});
-      if (l.type === "background") p["background-color"] = "#111315";
-      else if (l.type === "fill") {
-        delete p["fill-pattern"]; delete p["fill-outline-color"];
-        p["fill-color"] = /water|ocean|sea/.test(id) ? "#0b1820"
-          : /park|wood|forest|grass|landcover|scrub|wetland|cemetery|pitch/.test(id) ? "#141b16"
-          : /building/.test(id) ? "#1d2024" : "#16181b";
-      } else if (l.type === "line") {
-        delete p["line-pattern"];
-        p["line-color"] = /water|river|stream|canal/.test(id) ? "#0f2230" : /boundary|admin/.test(id) ? "#3a3f45"
-          : /rail|transit/.test(id) ? "#24272b" : /casing/.test(id) ? "#0d0e10"
-          : /motorway|trunk|primary/.test(id) ? "#3a3f46" : "#2a2e33";
-      } else if (l.type === "fill-extrusion") {
-        p["fill-extrusion-color"] = "#22252a"; p["fill-extrusion-opacity"] = .85;
-      } else if (l.type === "symbol") {
-        if (/poi|shield|aerodrome/.test(id)) { l.layout = { ...(l.layout || {}), visibility: "none" }; continue; }
-        if (l.layout && l.layout["text-field"] !== undefined) {
-          p["text-color"] = /place|label_city|capital|country|state/.test(id) ? "#b4b9bf" : "#7d838a";
-          p["text-halo-color"] = "#0e0f11"; p["text-halo-width"] = 1.2;
-        }
-        delete p["icon-color"];
-      }
+      const p = (l.paint = l.paint || {});
+      delete p["fill-pattern"]; delete p["fill-outline-color"]; delete p["line-pattern"]; delete p["icon-color"];
+      if (l.type === "symbol" && /poi|shield|aerodrome/.test(l.id)) { l.layout = { ...(l.layout || {}), visibility: "none" }; continue; }
+      for (const [k, v] of themeProps(l, T)) p[k] = v;
     }
+    style.__base = true;
     return style;
   }
+  // 낮/밤 바꾸기 (안심모드를 켜면 밤, 끄면 낮)
+  function applyTheme(name) {
+    if (!THEMES[name] || name === THEME) return;
+    THEME = name;
+    const map = state.map; if (!map || !map.isStyleLoaded || !map.getStyle()) return;
+    const T = THEMES[name];
+    const OURS = new Set(["regions", "run", "poi", "course", "trace", "dem"]);       // 우리가 넣은 데이터 층은 그대로
+    for (const l of map.getStyle().layers) {
+      if (l.source && (OURS.has(l.source) || /^sf-|safety/.test(l.source))) continue;
+      for (const [k, v] of themeProps(l, T)) { try { map.setPaintProperty(l.id, k, v); } catch (e) {} }
+    }
+  }
+  window.runnaviTheme = applyTheme;
   async function fetchStyle() {
     try {
       const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 7000);

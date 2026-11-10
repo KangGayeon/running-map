@@ -133,6 +133,7 @@ window.SafetyLayer = (() => {
       S.map.setFilter("poi-other", on ? ["all", ["!=", ["get", "t"], "toilet"], ["!=", ["get", "t"], "police"]] : ["!=", ["get", "t"], "toilet"]);
     S.row.setAttribute("aria-pressed", on ? "true" : "false");
     S.legend.hidden = !on;
+    if (window.runnaviTheme) window.runnaviTheme(on ? "night" : "day");      // 안심모드 = 밤 지도
     try { localStorage.setItem("runnavi-safety", on ? "1" : "0"); } catch (e) {}
     if (on) refresh();
     onHome(S.app.cur);
