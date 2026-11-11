@@ -60,7 +60,10 @@
   }
 
   // ---------- 시군구 지도: 안전시설 ----------
-  function startRegion(map, code) {
+  async function startRegion(map, code) {
+    const rows = await getJson(BASE + "region_safety.json");
+    const st = (rows || []).find((r) => r.region_code === code) || {};
+    const noSignal = st.has_signal_info === false;
     const pane = map.createPane("sfPane");
     pane.style.zIndex = 450;
     const canvas = L.canvas({ padding: 0.3, pane: "sfPane" });
@@ -88,9 +91,17 @@
           L.circleMarker(ll, { renderer: canvas, radius: 4, color: "#c92a2a", weight: 1.5, fillColor: "#ff6b6b", fillOpacity: .9 })
             .bindPopup(`🚦 <b>${yes(p.is_pedestrian) ? "보행 신호등" : "신호등"}</b>` + (yes(p.has_countdown) ? "<br>잔여시간 표시기 있음" : "") +
               (yes(p.night_blink) ? "<br>야간 점멸 운영" : "")).addTo(g.signal);
+        } else if (p.layer === "bell") {
+          L.marker(ll, { pane: "sfPane", icon: L.divIcon({ className: "", html: `<div class="sf-pol" style="border-color:#f08c00">🔔</div>`, iconSize: [24, 24] }) })
+            .bindPopup(`🔔 <b>${p.kind || "안전 비상벨"}</b>${p.name ? "<br>" + p.name : ""}<br>위급할 때 누르면 경찰과 연결`).addTo(g.police);
+        } else if (p.layer === "crosswalk" && p.signal_info === "unknown") {
+          // 신호 유무를 모르는 횡단보도(대구 등): 회색 작은 점, 확대했을 때만
+          L.circleMarker(ll, { renderer: denseCanvas, radius: 3, color: "#868e96", weight: 1, fillColor: "#dee2e6", fillOpacity: .9 })
+            .bindPopup("횡단보도<br><small>신호등 정보가 없는 자료예요</small>").addTo(g.signal);
         } else if (p.layer === "crosswalk" && yes(p.has_ped_signal)) {
           L.circleMarker(ll, { renderer: canvas, radius: 4, color: "#1864ab", weight: 1.5, fillColor: "#4dabf7", fillOpacity: .9 })
-            .bindPopup(`🚸 <b>보행신호 횡단보도</b>` + (p.green_sec != null ? `<br>녹색 ${p.green_sec}초 · 적색 ${p.red_sec}초` : "") +
+            .bindPopup(`🚸 <b>보행신호 횡단보도</b>` + (p.signal_info === "estimated" ? "<br><small>근처 보행 신호등으로 추정</small>" : "") +
+              (p.green_sec != null ? `<br>녹색 ${p.green_sec}초 · 적색 ${p.red_sec}초` : "") +
               `<br>예상 대기 약 ${Math.round(p.expected_wait_sec)}초` + (yes(p.has_lighting) ? "<br>집중조명 있음" : "")).addTo(g.signal);
         } else if (p.layer === "lamp") {
           L.circleMarker(ll, { renderer: denseCanvas, radius: 2, stroke: false, fillColor: "#f59f00", fillOpacity: .8, interactive: false }).addTo(g.lamp);
@@ -103,8 +114,8 @@
     });
 
     const items = {
-      "👮 경찰 공공데이터 (보라 원 = 24시간 1km)": g.police,
-      "🚦 신호등 · 🔵 보행신호 횡단보도": g.signal,
+      "👮 경찰 · 🔔 안심부스 (보라 원 = 24시간 1km)": g.police,
+      [noSignal ? "🚦 신호등 · 🔵 보행신호 횡단보도 (이 지역 신호 자료 없음)" : "🚦 신호등 · 🔵 보행신호 횡단보도"]: g.signal,
       "💡 보안등 (확대하면 보임)": g.lamp,
       "📹 안전용 CCTV (확대하면 보임)": g.cctv,
       "⚠ 안전 사각지대 (분홍 점선)": g.blind,

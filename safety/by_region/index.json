@@ -1,95 +1,95 @@
 {
  "r001": {
   "label": "서울특별시 종로구",
-  "features": 10365
+  "features": 11752
  },
  "r002": {
   "label": "서울특별시 중구",
-  "features": 5905
+  "features": 7527
  },
  "r003": {
   "label": "서울특별시 용산구",
-  "features": 1560
+  "features": 2883
  },
  "r004": {
   "label": "서울특별시 성동구",
-  "features": 1339
+  "features": 2725
  },
  "r005": {
   "label": "서울특별시 광진구",
-  "features": 9326
+  "features": 10540
  },
  "r006": {
   "label": "서울특별시 동대문구",
-  "features": 1380
+  "features": 3065
  },
  "r007": {
   "label": "서울특별시 중랑구",
-  "features": 9646
+  "features": 11482
  },
  "r008": {
   "label": "서울특별시 성북구",
-  "features": 11472
+  "features": 13695
  },
  "r009": {
   "label": "서울특별시 강북구",
-  "features": 9534
+  "features": 11071
  },
  "r010": {
   "label": "서울특별시 도봉구",
-  "features": 1717
+  "features": 2888
  },
  "r011": {
   "label": "서울특별시 노원구",
-  "features": 7165
+  "features": 9150
  },
  "r012": {
   "label": "서울특별시 은평구",
-  "features": 9708
+  "features": 11621
  },
  "r013": {
   "label": "서울특별시 서대문구",
-  "features": 1663
+  "features": 2985
  },
  "r014": {
   "label": "서울특별시 마포구",
-  "features": 1533
+  "features": 3842
  },
  "r015": {
   "label": "서울특별시 양천구",
-  "features": 7056
+  "features": 9148
  },
  "r016": {
   "label": "서울특별시 강서구",
-  "features": 9868
+  "features": 12358
  },
  "r017": {
   "label": "서울특별시 구로구",
-  "features": 8837
+  "features": 10938
  },
  "r018": {
   "label": "서울특별시 금천구",
-  "features": 5505
+  "features": 6357
  },
  "r019": {
   "label": "서울특별시 영등포구",
-  "features": 7937
+  "features": 7934
  },
  "r020": {
   "label": "서울특별시 동작구",
-  "features": 9422
+  "features": 9381
  },
  "r021": {
   "label": "서울특별시 관악구",
-  "features": 12524
+  "features": 12531
  },
  "r022": {
   "label": "서울특별시 서초구",
-  "features": 9212
+  "features": 9681
  },
  "r023": {
   "label": "서울특별시 강남구",
-  "features": 2672
+  "features": 6024
  },
  "r024": {
   "label": "서울특별시 송파구",
@@ -97,143 +97,143 @@
  },
  "r025": {
   "label": "서울특별시 강동구",
-  "features": 5853
+  "features": 5855
  },
  "r026": {
   "label": "부산광역시 중구",
-  "features": 2180
+  "features": 2246
  },
  "r027": {
   "label": "부산광역시 서구",
-  "features": 3965
+  "features": 4084
  },
  "r028": {
   "label": "부산광역시 동구",
-  "features": 511
+  "features": 593
  },
  "r029": {
   "label": "부산광역시 영도구",
-  "features": 4445
+  "features": 4564
  },
  "r030": {
   "label": "부산광역시 부산진구",
-  "features": 7948
+  "features": 8258
  },
  "r031": {
   "label": "부산광역시 동래구",
-  "features": 5176
+  "features": 5395
  },
  "r032": {
   "label": "부산광역시 남구",
-  "features": 5486
+  "features": 5728
  },
  "r033": {
   "label": "부산광역시 북구",
-  "features": 4470
+  "features": 4727
  },
  "r034": {
   "label": "부산광역시 해운대구",
-  "features": 4203
+  "features": 4697
  },
  "r035": {
   "label": "부산광역시 사하구",
-  "features": 5755
+  "features": 6067
  },
  "r036": {
   "label": "부산광역시 금정구",
-  "features": 4919
+  "features": 5096
  },
  "r037": {
   "label": "부산광역시 강서구",
-  "features": 5325
+  "features": 5884
  },
  "r038": {
   "label": "부산광역시 연제구",
-  "features": 3476
+  "features": 3652
  },
  "r039": {
   "label": "부산광역시 수영구",
-  "features": 4610
+  "features": 4743
  },
  "r040": {
   "label": "부산광역시 사상구",
-  "features": 3854
+  "features": 4092
  },
  "r041": {
   "label": "부산광역시 기장군",
-  "features": 6669
+  "features": 6995
  },
  "r042": {
   "label": "대구광역시 중구",
-  "features": 4365
+  "features": 5365
  },
  "r043": {
   "label": "대구광역시 동구",
-  "features": 12160
+  "features": 14642
  },
  "r044": {
   "label": "대구광역시 서구",
-  "features": 7865
+  "features": 9000
  },
  "r045": {
   "label": "대구광역시 남구",
-  "features": 7069
+  "features": 7926
  },
  "r046": {
   "label": "대구광역시 북구",
-  "features": 13598
+  "features": 16496
  },
  "r047": {
   "label": "대구광역시 수성구",
-  "features": 8153
+  "features": 10733
  },
  "r048": {
   "label": "대구광역시 달서구",
-  "features": 10396
+  "features": 13899
  },
  "r049": {
   "label": "대구광역시 달성군",
-  "features": 11413
+  "features": 14028
  },
  "r050": {
   "label": "인천광역시 미추홀구",
-  "features": 7585
+  "features": 7590
  },
  "r051": {
   "label": "인천광역시 연수구",
-  "features": 2842
+  "features": 2839
  },
  "r052": {
   "label": "인천광역시 남동구",
-  "features": 8745
+  "features": 8761
  },
  "r053": {
   "label": "인천광역시 부평구",
-  "features": 7761
+  "features": 7766
  },
  "r054": {
   "label": "인천광역시 계양구",
-  "features": 4776
+  "features": 4778
  },
  "r055": {
   "label": "인천광역시 강화군",
-  "features": 12398
+  "features": 12402
  },
  "r056": {
   "label": "인천광역시 옹진군",
-  "features": 141
+  "features": 145
  },
  "r057": {
   "label": "인천광역시 제물포구",
-  "features": 2208
+  "features": 2213
  },
  "r058": {
   "label": "인천광역시 영종구",
-  "features": 2791
+  "features": 2794
  },
  "r059": {
   "label": "인천광역시 서해구",
-  "features": 5320
+  "features": 5323
  },
  "r060": {
   "label": "인천광역시 검단구",
@@ -241,99 +241,99 @@
  },
  "r061": {
   "label": "전남광주통합특별시 동구",
-  "features": 4599
+  "features": 4603
  },
  "r062": {
   "label": "전남광주통합특별시 서구",
-  "features": 5091
+  "features": 5094
  },
  "r063": {
   "label": "전남광주통합특별시 남구",
-  "features": 192
+  "features": 196
  },
  "r064": {
   "label": "전남광주통합특별시 북구",
-  "features": 9259
+  "features": 9264
  },
  "r065": {
   "label": "전남광주통합특별시 광산구",
-  "features": 579
+  "features": 588
  },
  "r066": {
   "label": "대전광역시 동구",
-  "features": 16148
+  "features": 16158
  },
  "r067": {
   "label": "대전광역시 중구",
-  "features": 9215
+  "features": 9222
  },
  "r068": {
   "label": "대전광역시 서구",
-  "features": 17431
+  "features": 17443
  },
  "r069": {
   "label": "대전광역시 유성구",
-  "features": 9327
+  "features": 9333
  },
  "r070": {
   "label": "대전광역시 대덕구",
-  "features": 5102
+  "features": 5105
  },
  "r071": {
   "label": "울산광역시 중구",
-  "features": 4213
+  "features": 4220
  },
  "r072": {
   "label": "울산광역시 남구",
-  "features": 7099
+  "features": 7104
  },
  "r073": {
   "label": "울산광역시 동구",
-  "features": 2291
+  "features": 2293
  },
  "r074": {
   "label": "울산광역시 북구",
-  "features": 4647
+  "features": 4648
  },
  "r075": {
   "label": "울산광역시 울주군",
-  "features": 14635
+  "features": 14640
  },
  "r076": {
   "label": "경기도 수원시장안구",
-  "features": 5181
+  "features": 5183
  },
  "r077": {
   "label": "경기도 수원시권선구",
-  "features": 7160
+  "features": 7162
  },
  "r078": {
   "label": "경기도 수원시팔달구",
-  "features": 5470
+  "features": 5473
  },
  "r079": {
   "label": "경기도 수원시영통구",
-  "features": 2969
+  "features": 2974
  },
  "r080": {
   "label": "경기도 성남시수정구",
-  "features": 5486
+  "features": 5489
  },
  "r081": {
   "label": "경기도 성남시중원구",
-  "features": 4049
+  "features": 4053
  },
  "r082": {
   "label": "경기도 성남시분당구",
-  "features": 3440
+  "features": 3441
  },
  "r083": {
   "label": "경기도 의정부시",
-  "features": 8215
+  "features": 8214
  },
  "r084": {
   "label": "경기도 안양시만안구",
-  "features": 1857
+  "features": 1863
  },
  "r085": {
   "label": "경기도 안양시동안구",
@@ -341,11 +341,11 @@
  },
  "r086": {
   "label": "경기도 광명시",
-  "features": 3080
+  "features": 3083
  },
  "r087": {
   "label": "경기도 평택시",
-  "features": 10833
+  "features": 10835
  },
  "r088": {
   "label": "경기도 동두천시",
@@ -353,15 +353,15 @@
  },
  "r089": {
   "label": "경기도 안산시상록구",
-  "features": 6533
+  "features": 6534
  },
  "r090": {
   "label": "경기도 안산시단원구",
-  "features": 7092
+  "features": 7090
  },
  "r091": {
   "label": "경기도 고양시덕양구",
-  "features": 1212
+  "features": 1218
  },
  "r092": {
   "label": "경기도 고양시일산서구",
@@ -369,15 +369,15 @@
  },
  "r093": {
   "label": "경기도 과천시",
-  "features": 1715
+  "features": 1718
  },
  "r094": {
   "label": "경기도 구리시",
-  "features": 3597
+  "features": 3598
  },
  "r095": {
   "label": "경기도 남양주시",
-  "features": 17231
+  "features": 17229
  },
  "r096": {
   "label": "경기도 오산시",
@@ -389,7 +389,7 @@
  },
  "r098": {
   "label": "경기도 군포시",
-  "features": 2394
+  "features": 2393
  },
  "r099": {
   "label": "경기도 의왕시",
@@ -397,31 +397,31 @@
  },
  "r100": {
   "label": "경기도 하남시",
-  "features": 7207
+  "features": 7206
  },
  "r101": {
   "label": "경기도 파주시",
-  "features": 8799
+  "features": 8798
  },
  "r102": {
   "label": "경기도 이천시",
-  "features": 12527
+  "features": 12526
  },
  "r103": {
   "label": "경기도 안성시",
-  "features": 17153
+  "features": 17154
  },
  "r104": {
   "label": "경기도 김포시",
-  "features": 1641
+  "features": 1639
  },
  "r105": {
   "label": "경기도 화성시",
-  "features": 19685
+  "features": 19687
  },
  "r106": {
   "label": "경기도 광주시",
-  "features": 13253
+  "features": 13256
  },
  "r107": {
   "label": "경기도 양주시",
@@ -433,11 +433,11 @@
  },
  "r109": {
   "label": "경기도 여주시",
-  "features": 9604
+  "features": 9605
  },
  "r110": {
   "label": "경기도 연천군",
-  "features": 4250
+  "features": 4251
  },
  "r111": {
   "label": "경기도 가평군",
@@ -445,7 +445,7 @@
  },
  "r112": {
   "label": "경기도 양평군",
-  "features": 21540
+  "features": 21541
  },
  "r113": {
   "label": "경기도 고양시일산동구",
@@ -453,7 +453,7 @@
  },
  "r114": {
   "label": "경기도 부천시",
-  "features": 9663
+  "features": 9690
  },
  "r115": {
   "label": "경기도 용인시처인구",
@@ -461,7 +461,7 @@
  },
  "r116": {
   "label": "경기도 용인시기흥구",
-  "features": 3712
+  "features": 3715
  },
  "r117": {
   "label": "경기도 용인시수지구",
@@ -469,51 +469,51 @@
  },
  "r118": {
   "label": "강원특별자치도 춘천시",
-  "features": 12275
+  "features": 12279
  },
  "r119": {
   "label": "강원특별자치도 원주시",
-  "features": 12608
+  "features": 12610
  },
  "r120": {
   "label": "강원특별자치도 강릉시",
-  "features": 12253
+  "features": 12254
  },
  "r121": {
   "label": "강원특별자치도 동해시",
-  "features": 1344
+  "features": 1346
  },
  "r122": {
   "label": "강원특별자치도 태백시",
-  "features": 2966
+  "features": 2968
  },
  "r123": {
   "label": "강원특별자치도 속초시",
-  "features": 3301
+  "features": 3299
  },
  "r124": {
   "label": "강원특별자치도 삼척시",
-  "features": 3397
+  "features": 3411
  },
  "r125": {
   "label": "강원특별자치도 홍천군",
-  "features": 482
+  "features": 483
  },
  "r126": {
   "label": "강원특별자치도 횡성군",
-  "features": 7610
+  "features": 7614
  },
  "r127": {
   "label": "강원특별자치도 영월군",
-  "features": 4064
+  "features": 4066
  },
  "r128": {
   "label": "강원특별자치도 평창군",
-  "features": 5311
+  "features": 5312
  },
  "r129": {
   "label": "강원특별자치도 정선군",
-  "features": 599
+  "features": 601
  },
  "r130": {
   "label": "강원특별자치도 철원군",
@@ -525,11 +525,11 @@
  },
  "r132": {
   "label": "강원특별자치도 양구군",
-  "features": 5730
+  "features": 5729
  },
  "r133": {
   "label": "강원특별자치도 인제군",
-  "features": 430
+  "features": 432
  },
  "r134": {
   "label": "강원특별자치도 고성군",
@@ -537,7 +537,7 @@
  },
  "r135": {
   "label": "강원특별자치도 양양군",
-  "features": 5720
+  "features": 5719
  },
  "r136": {
   "label": "충청북도 청주시상당구",
@@ -549,11 +549,11 @@
  },
  "r138": {
   "label": "충청북도 충주시",
-  "features": 19386
+  "features": 19391
  },
  "r139": {
   "label": "충청북도 제천시",
-  "features": 1466
+  "features": 1468
  },
  "r140": {
   "label": "충청북도 보은군",
@@ -561,11 +561,11 @@
  },
  "r141": {
   "label": "충청북도 옥천군",
-  "features": 7306
+  "features": 7307
  },
  "r142": {
   "label": "충청북도 영동군",
-  "features": 5962
+  "features": 5965
  },
  "r143": {
   "label": "충청북도 증평군",
@@ -573,11 +573,11 @@
  },
  "r144": {
   "label": "충청북도 진천군",
-  "features": 5993
+  "features": 5998
  },
  "r145": {
   "label": "충청북도 괴산군",
-  "features": 816
+  "features": 821
  },
  "r146": {
   "label": "충청북도 음성군",
@@ -585,7 +585,7 @@
  },
  "r147": {
   "label": "충청북도 단양군",
-  "features": 467
+  "features": 469
  },
  "r148": {
   "label": "충청북도 청주시서원구",
@@ -601,19 +601,19 @@
  },
  "r151": {
   "label": "충청남도 보령시",
-  "features": 10445
+  "features": 10451
  },
  "r152": {
   "label": "충청남도 아산시",
-  "features": 20155
+  "features": 20158
  },
  "r153": {
   "label": "충청남도 서산시",
-  "features": 14079
+  "features": 14081
  },
  "r154": {
   "label": "충청남도 논산시",
-  "features": 1954
+  "features": 1959
  },
  "r155": {
   "label": "충청남도 계룡시",
@@ -621,31 +621,31 @@
  },
  "r156": {
   "label": "충청남도 금산군",
-  "features": 9448
+  "features": 9450
  },
  "r157": {
   "label": "충청남도 부여군",
-  "features": 12047
+  "features": 12051
  },
  "r158": {
   "label": "충청남도 서천군",
-  "features": 8950
+  "features": 8951
  },
  "r159": {
   "label": "충청남도 청양군",
-  "features": 6370
+  "features": 6373
  },
  "r160": {
   "label": "충청남도 홍성군",
-  "features": 10119
+  "features": 10122
  },
  "r161": {
   "label": "충청남도 예산군",
-  "features": 11996
+  "features": 12001
  },
  "r162": {
   "label": "충청남도 태안군",
-  "features": 9473
+  "features": 9471
  },
  "r163": {
   "label": "충청남도 당진시",
@@ -653,7 +653,7 @@
  },
  "r164": {
   "label": "충청남도 천안시동남구",
-  "features": 14810
+  "features": 14815
  },
  "r165": {
   "label": "충청남도 천안시서북구",
@@ -669,27 +669,27 @@
  },
  "r168": {
   "label": "전북특별자치시도 군산시",
-  "features": 16657
+  "features": 16659
  },
  "r169": {
   "label": "전북특별자치시도 익산시",
-  "features": 20354
+  "features": 20359
  },
  "r170": {
   "label": "전북특별자치시도 정읍시",
-  "features": 11873
+  "features": 11879
  },
  "r171": {
   "label": "전북특별자치시도 남원시",
-  "features": 12006
+  "features": 12008
  },
  "r172": {
   "label": "전북특별자치시도 김제시",
-  "features": 861
+  "features": 866
  },
  "r173": {
   "label": "전북특별자치시도 완주군",
-  "features": 4107
+  "features": 4110
  },
  "r174": {
   "label": "전북특별자치시도 진안군",
@@ -697,7 +697,7 @@
  },
  "r175": {
   "label": "전북특별자치시도 무주군",
-  "features": 4840
+  "features": 4838
  },
  "r176": {
   "label": "전북특별자치시도 장수군",
@@ -705,23 +705,23 @@
  },
  "r177": {
   "label": "전북특별자치시도 임실군",
-  "features": 6160
+  "features": 6162
  },
  "r178": {
   "label": "전북특별자치시도 순창군",
-  "features": 6117
+  "features": 6118
  },
  "r179": {
   "label": "전북특별자치시도 고창군",
-  "features": 8527
+  "features": 8530
  },
  "r180": {
   "label": "전북특별자치시도 부안군",
-  "features": 10448
+  "features": 10446
  },
  "r181": {
   "label": "전남광주통합특별시 목포시",
-  "features": 1126
+  "features": 1128
  },
  "r182": {
   "label": "전남광주통합특별시 여수시",
@@ -729,55 +729,55 @@
  },
  "r183": {
   "label": "전남광주통합특별시 순천시",
-  "features": 11985
+  "features": 11991
  },
  "r184": {
   "label": "전남광주통합특별시 나주시",
-  "features": 14606
+  "features": 14608
  },
  "r185": {
   "label": "전남광주통합특별시 광양시",
-  "features": 4671
+  "features": 4674
  },
  "r186": {
   "label": "전남광주통합특별시 담양군",
-  "features": 6618
+  "features": 6620
  },
  "r187": {
   "label": "전남광주통합특별시 곡성군",
-  "features": 3180
+  "features": 3181
  },
  "r188": {
   "label": "전남광주통합특별시 구례군",
-  "features": 418
+  "features": 421
  },
  "r189": {
   "label": "전남광주통합특별시 고흥군",
-  "features": 708
+  "features": 712
  },
  "r190": {
   "label": "전남광주통합특별시 보성군",
-  "features": 971
+  "features": 973
  },
  "r191": {
   "label": "전남광주통합특별시 화순군",
-  "features": 11380
+  "features": 11385
  },
  "r192": {
   "label": "전남광주통합특별시 장흥군",
-  "features": 422
+  "features": 425
  },
  "r193": {
   "label": "전남광주통합특별시 강진군",
-  "features": 3990
+  "features": 3991
  },
  "r194": {
   "label": "전남광주통합특별시 해남군",
-  "features": 11246
+  "features": 11244
  },
  "r195": {
   "label": "전남광주통합특별시 영암군",
-  "features": 2381
+  "features": 2383
  },
  "r196": {
   "label": "전남광주통합특별시 무안군",
@@ -785,83 +785,83 @@
  },
  "r197": {
   "label": "전남광주통합특별시 함평군",
-  "features": 6121
+  "features": 6122
  },
  "r198": {
   "label": "전남광주통합특별시 영광군",
-  "features": 8240
+  "features": 8241
  },
  "r199": {
   "label": "전남광주통합특별시 장성군",
-  "features": 5764
+  "features": 5766
  },
  "r200": {
   "label": "전남광주통합특별시 완도군",
-  "features": 382
+  "features": 387
  },
  "r201": {
   "label": "전남광주통합특별시 진도군",
-  "features": 727
+  "features": 726
  },
  "r202": {
   "label": "전남광주통합특별시 신안군",
-  "features": 11193
+  "features": 11196
  },
  "r203": {
   "label": "경상북도 포항시남구",
-  "features": 2729
+  "features": 2730
  },
  "r204": {
   "label": "경상북도 포항시북구",
-  "features": 6290
+  "features": 6291
  },
  "r205": {
   "label": "경상북도 경주시",
-  "features": 31162
+  "features": 31163
  },
  "r206": {
   "label": "경상북도 김천시",
-  "features": 12755
+  "features": 12760
  },
  "r207": {
   "label": "경상북도 안동시",
-  "features": 11995
+  "features": 12001
  },
  "r208": {
   "label": "경상북도 구미시",
-  "features": 20344
+  "features": 20347
  },
  "r209": {
   "label": "경상북도 영주시",
-  "features": 1486
+  "features": 1489
  },
  "r210": {
   "label": "경상북도 영천시",
-  "features": 918
+  "features": 921
  },
  "r211": {
   "label": "경상북도 상주시",
-  "features": 1195
+  "features": 1203
  },
  "r212": {
   "label": "경상북도 문경시",
-  "features": 8756
+  "features": 8758
  },
  "r213": {
   "label": "경상북도 경산시",
-  "features": 3771
+  "features": 3810
  },
  "r214": {
   "label": "경상북도 의성군",
-  "features": 1018
+  "features": 1025
  },
  "r215": {
   "label": "경상북도 청송군",
-  "features": 7031
+  "features": 7032
  },
  "r216": {
   "label": "경상북도 영양군",
-  "features": 3530
+  "features": 3531
  },
  "r217": {
   "label": "경상북도 영덕군",
@@ -869,19 +869,19 @@
  },
  "r218": {
   "label": "경상북도 청도군",
-  "features": 5275
+  "features": 5276
  },
  "r219": {
   "label": "경상북도 고령군",
-  "features": 883
+  "features": 882
  },
  "r220": {
   "label": "경상북도 성주군",
-  "features": 724
+  "features": 725
  },
  "r221": {
   "label": "경상북도 칠곡군",
-  "features": 1715
+  "features": 1716
  },
  "r222": {
   "label": "경상북도 예천군",
@@ -889,39 +889,39 @@
  },
  "r223": {
   "label": "경상북도 봉화군",
-  "features": 6747
+  "features": 6748
  },
  "r224": {
   "label": "경상북도 울진군",
-  "features": 8599
+  "features": 8598
  },
  "r225": {
   "label": "경상북도 울릉군",
-  "features": 190
+  "features": 191
  },
  "r226": {
   "label": "경상남도 진주시",
-  "features": 20646
+  "features": 20652
  },
  "r227": {
   "label": "경상남도 통영시",
-  "features": 7255
+  "features": 7254
  },
  "r228": {
   "label": "경상남도 사천시",
-  "features": 10415
+  "features": 10419
  },
  "r229": {
   "label": "경상남도 김해시",
-  "features": 15519
+  "features": 15521
  },
  "r230": {
   "label": "경상남도 밀양시",
-  "features": 13406
+  "features": 13408
  },
  "r231": {
   "label": "경상남도 거제시",
-  "features": 11390
+  "features": 11386
  },
  "r232": {
   "label": "경상남도 양산시",
@@ -937,19 +937,19 @@
  },
  "r235": {
   "label": "경상남도 창녕군",
-  "features": 9843
+  "features": 9848
  },
  "r236": {
   "label": "경상남도 고성군",
-  "features": 9748
+  "features": 9753
  },
  "r237": {
   "label": "경상남도 남해군",
-  "features": 6014
+  "features": 6015
  },
  "r238": {
   "label": "경상남도 하동군",
-  "features": 1171
+  "features": 1173
  },
  "r239": {
   "label": "경상남도 산청군",
@@ -957,7 +957,7 @@
  },
  "r240": {
   "label": "경상남도 함양군",
-  "features": 6539
+  "features": 6542
  },
  "r241": {
   "label": "경상남도 거창군",
@@ -965,31 +965,31 @@
  },
  "r242": {
   "label": "경상남도 합천군",
-  "features": 6878
+  "features": 6886
  },
  "r243": {
   "label": "제주특별자치도 제주시",
-  "features": 14737
+  "features": 14744
  },
  "r244": {
   "label": "제주특별자치도 서귀포시",
-  "features": 8923
+  "features": 8921
  },
  "r245": {
   "label": "세종특별자치시 세종시",
-  "features": 9991
+  "features": 9989
  },
  "r246": {
   "label": "경상남도 창원시의창구",
-  "features": 5672
+  "features": 5675
  },
  "r247": {
   "label": "경상남도 창원시성산구",
-  "features": 2240
+  "features": 2242
  },
  "r248": {
   "label": "경상남도 창원시마산합포구",
-  "features": 7611
+  "features": 7614
  },
  "r249": {
   "label": "경상남도 창원시마산회원구",
@@ -997,10 +997,10 @@
  },
  "r250": {
   "label": "경상남도 창원시진해구",
-  "features": 2047
+  "features": 2049
  },
  "r251": {
   "label": "경상북도 군위군",
-  "features": 625
+  "features": 760
  }
 }

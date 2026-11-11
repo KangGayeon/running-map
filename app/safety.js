@@ -9,7 +9,8 @@
 window.SafetyLayer = (() => {
   const BASE = "../safety/";
   const S = { map: null, app: null, on: false, files: new Map(), stats: null, cross: [], police: [], shown: "" };
-  const ICONS = { police: ["👮", "#b197fc"], police_day: ["👮", "#6b7177"], signal: ["🚦", "#ff6b6b"], crosswalk: ["🚸", "#4dabf7"] };
+  const ICONS = { police: ["👮", "#b197fc"], police_day: ["👮", "#6b7177"], signal: ["🚦", "#ff6b6b"], crosswalk: ["🚸", "#4dabf7"],
+                  bell: ["🔔", "#ffa94d"] };
 
   // ---------- 계산 도우미 ----------
   const rad = (d) => d * Math.PI / 180;
@@ -88,7 +89,7 @@ window.SafetyLayer = (() => {
     map.addLayer({ id: "sf-icons", type: "symbol", source: "sf-pts", minzoom: 12, layout: { ...vis,
       "icon-image": ["concat", "sf-", ["get", "k"]], "icon-allow-overlap": true,
       "icon-size": ["interpolate", ["linear"], ["zoom"], 12, ["match", ["get", "layer"], "police", .7, .3], 16, ["match", ["get", "layer"], "police", 1, .85]] },
-      filter: ["any", ["==", ["get", "layer"], "police"],
+      filter: ["any", ["==", ["get", "layer"], "police"], ["==", ["get", "layer"], "bell"],
                ["all", [">=", ["zoom"], 15], ["==", ["get", "layer"], "signal"]],
                ["all", [">=", ["zoom"], 15], ["==", ["get", "layer"], "crosswalk"], ["==", ["get", "has_ped_signal"], true]]] });
     map.on("click", "sf-icons", (e) => {
@@ -97,7 +98,8 @@ window.SafetyLayer = (() => {
         police: () => `👮 <b>${p.name || "경찰관서"}</b><br>${y(p.open_24h) ? "24시간 운영" : "주간만 운영 (치안센터 등)"}`,
         signal: () => `🚦 <b>${y(p.is_pedestrian) ? "보행 신호등" : "신호등"}</b>` +
           (y(p.has_countdown) ? "<br>잔여시간 표시기 있음" : "") + (y(p.night_blink) ? "<br>야간 점멸 운영" : ""),
-        crosswalk: () => `🚸 <b>보행신호 횡단보도</b>` +
+        bell: () => `🔔 <b>${p.kind || "안전 비상벨"}</b>${p.name ? "<br>" + p.name : ""}<br>위급할 때 누르면 경찰과 연결`,
+        crosswalk: () => `🚸 <b>보행신호 횡단보도</b>` + (p.signal_info === "estimated" ? "<br><small>근처 보행 신호등으로 추정</small>" : "") +
           (p.green_sec && p.green_sec !== "null" ? `<br>녹색 ${p.green_sec}초 · 적색 ${p.red_sec}초` : "") +
           `<br>예상 대기 약 ${Math.round(+p.expected_wait_sec)}초` + (y(p.has_lighting) ? "<br>집중조명 있음" : ""),
       }[p.layer];
@@ -116,7 +118,7 @@ window.SafetyLayer = (() => {
     S.row.onclick = () => setOn(!S.on);
     S.legend = document.createElement("div");
     S.legend.className = "sf-legend"; S.legend.hidden = true;
-    S.legend.innerHTML = `<span>👮 24시간 경찰 (보라 원 1km)</span><span>🚦🚸 신호</span>` +
+    S.legend.innerHTML = `<span>👮 24시간 경찰 (보라 원 1km)</span><span>🔔 안심부스</span><span>🚦🚸 신호</span>` +
       `<span><i style="background:#ffd43b"></i>보안등</span><span><i style="background:#e9ecef"></i>CCTV</span>` +
       `<span><i style="background:#ff5c8a"></i>안전 사각지대</span>`;
     if (sheet && legend) { legend.after(S.row); S.row.after(S.legend); }
@@ -192,7 +194,7 @@ window.SafetyLayer = (() => {
     if (!sub) return;
     const s = S.stats && code && S.stats[code];
     if (!s) { sub.textContent = "경찰·신호등·보안등·CCTV·사각지대 보기"; return; }
-    const warn = s.police_missing_coords_n ? " · 경찰 일부 누락" : "";
+    const warn = (s.police_missing_coords_n ? " · 경찰 일부 누락" : "") + (s.has_signal_info === false ? " · 신호 자료 없음" : "");
     sub.innerHTML = `안전 점수 <span style="color:var(--ink);font-weight:700">${s.safety_score ?? "–"}</span> · 밤 경찰 1km ${pct(s.run_police_night_1km_pct)}` +
       ` (낮 ${pct(s.run_police_day_1km_pct)}) · 밤 조명·CCTV ${pct(s.run_night_lit_pct)}${warn}`;
     if (S.on) refresh();
@@ -225,8 +227,11 @@ window.SafetyLayer = (() => {
       const d = hav(pos, p.ll);
       if (!pol || d < pol.d) pol = { ...p, d };
     }
+    // 신호 자료가 없는 시군구에서는 '신호 없음'이 아니라 '자료 없음'으로 안내 (실제로 신호가 없는 것과 구분)
+    const st = S.stats && S.app.cur && S.stats[S.app.cur];
+    const noInfo = st && st.has_signal_info === false;
     const sig = next ? `🚸 앞 신호 <b>${fmt(next.d)}</b>` + (next.g ? ` · 녹색 ${next.g}초/적색 ${next.r}초` : "") + (next.rt ? " · 잔여시간 표시" : "")
-                     : "🚸 800m 안 신호 없음";
+                     : noInfo ? "🚸 이 지역은 신호 자료가 없어요" : "🚸 800m 안 신호 없음";
     const po = pol ? `👮 24시간 경찰 <b>${fmt(pol.d)}</b>${pol.d > 1000 ? ' <span class="sf-warn">⚠</span>' : ""}` : `👮 <span class="sf-warn">5km 안 24시간 경찰 없음</span>`;
     S.runBar.innerHTML = `<span>${sig}</span><span>${po}</span>`;
     S.runBar.hidden = false;
