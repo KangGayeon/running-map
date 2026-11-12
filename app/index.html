@@ -327,6 +327,7 @@
 <script src="safety.js"></script><!-- 안전시설 레이어 (없어도 앱 동작) -->
 <script src="night_toilet.js"></script><!-- 밤 안심 화장실 (없어도 앱 동작) -->
 <script src="watch_notify.js"></script><!-- 워치 알림: 다음 화장실 (없어도 앱 동작) -->
+<script src="voice_coach.js"></script><!-- 음성 코치 (없어도 앱 동작) -->
 <script>
 (() => {
   const DATA = "data/";
@@ -997,6 +998,7 @@
     state.me.remove(); state.meShown = false;
     window.SafetyLayer?.onStop();
     window.WatchNotify?.stop();
+    window.VoiceCoach?.stop();
   }
   function finish() {
     const sec = clockSec(), kind = state.nav;
@@ -1090,6 +1092,8 @@
       $("arrow").style.transform = "";
     }
     window.SafetyLayer?.onUpdate(pos, state.heading);                 // 앞 신호·가까운 24시간 경찰
+    if (!refreshOnly) window.VoiceCoach?.update({ pos, heading: state.heading, dist: state.dist, sec: clockSec(), target, ahead: !!best,
+                                                  region: state.cur, demo: state.nav === "demo" });   // 음성 코치
 
     const p = map.project(pos);
     const fs = map.queryRenderedFeatures([[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]], { layers: ["run-inner"] });
