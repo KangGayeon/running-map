@@ -328,6 +328,7 @@
 <script src="night_toilet.js"></script><!-- 밤 안심 화장실 (없어도 앱 동작) -->
 <script src="watch_notify.js"></script><!-- 워치 알림: 다음 화장실 (없어도 앱 동작) -->
 <script src="voice_coach.js"></script><!-- 음성 코치 (없어도 앱 동작) -->
+<script src="course_gap.js"></script><!-- 코스 화장실 최대 간격 (없어도 앱 동작) -->
 <script>
 (() => {
   const DATA = "data/";
@@ -712,6 +713,7 @@
       const km = reg.demo_m / 1000;
       $("courseName").textContent = `${p.label.split(" ").slice(1).join(" ")} 평지 코스 ${km.toFixed(1)}km`;
       $("courseInfo").textContent = `약 ${Math.round(km * RUN_PACE_SEC / 60)}분 · 화장실 ${toiletsNear(reg.route, 150)}곳 · 전용로·평지 위주`;
+      window.CourseGap?.home(reg);                                   // 화장실 최대 간격
     } else {
       $("courseName").textContent = "추천 코스";
       $("courseInfo").textContent = p ? (reg ? "이 지역은 추천 코스가 없어요" : "코스 불러오는 중…") : "지도에서 지역을 누르면 추천 코스가 나와요";
@@ -884,6 +886,7 @@
       state.endPin = new maplibregl.Marker({ element: pe, opacityWhenCovered: "1" });
       try { window.SafetyLayer?.init(map, state); } catch (e) { console.error("안전시설 레이어", e); }
       try { window.NightToilet?.init(map, state); } catch (e) { console.error("밤 안심 화장실", e); }
+      try { window.CourseGap?.init(map, state); } catch (e) { console.error("코스 화장실 간격", e); }
 
       const q = new URLSearchParams(location.search).get("r");
       let last = null; try { last = localStorage.getItem("runnavi-region"); } catch (e) {}
@@ -923,6 +926,7 @@
   function clearCourse() {
     state.map.getSource("course").setData({ type: "FeatureCollection", features: [] });
     state.startPin.remove(); state.endPin.remove(); state.kmTag.remove();
+    window.CourseGap?.clear();
   }
   async function openCourse() {
     const reg = state.cur && await loadRegion(state.cur).catch(() => null);
@@ -936,6 +940,7 @@
     window.SafetyLayer?.onCourse(state.cur);                          // 코스 안전 정보
     show("course");
     drawCourse(reg.route);
+    window.CourseGap?.course(reg);                                    // 화장실 없는 가장 긴 구간
     state.map.setPaintProperty("course-line", "line-opacity", 1);
     state.map.setPaintProperty("course-glow", "line-opacity", .35);
     state.kmTag.getElement().textContent = `${km.toFixed(1)} km`;
